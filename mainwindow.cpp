@@ -4,22 +4,26 @@
 #include <QPushButton>
 #include <QSlider>
 #include <QSpinBox>
+#include <QMessageBox>
 
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 
 #include <QDebug>
 #include <QIntValidator>
-#include <QMessageBox>
+#include <QSettings>
 
 #include <time.h>
 #include <limits>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
-      num(0),
-      range(100)
+      num(0)
 {
+    QSettings settings;
+    int rate = settings.value(rateKey, 0).toInt();
+    range = settings.value(rangeKey, 100).toInt();
+
     setCentralWidget(new QWidget);
     {
         QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget());
@@ -45,11 +49,12 @@ MainWindow::MainWindow(QWidget *parent)
             mainLayout->addLayout(layout);
             layout->addWidget(new QLabel(tr("Speech rate")));
             {
-                QSlider * slider = new QSlider(Qt::Horizontal);
-                slider->setMinimum(-100);
-                slider->setMaximum(100);
-                layout->addWidget(slider);
-                connect(slider, QSlider::valueChanged, this, MainWindow::setRate);
+                QSlider * speechRateSlider = new QSlider(Qt::Horizontal);
+                speechRateSlider->setMinimum(-100);
+                speechRateSlider->setMaximum(100);
+                speechRateSlider->setValue(rate);
+                layout->addWidget(speechRateSlider);
+                connect(speechRateSlider, QSlider::valueChanged, this, MainWindow::setRate);
 
             }
         }
@@ -70,8 +75,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     randomDevice.seed(time(0));
     {
-        const double speechRate = 0;
-        speaker.setRate(speechRate);
+        setRate(rate);
     }
     speak();
 }
@@ -94,7 +98,7 @@ void MainWindow::answer()
         speaker.say(tr("Right!"));
     }else
     {
-        QString text = tr("Auch! It was %1").arg(num);
+        QString text = tr("Auch! It was \n %1").arg(num);
         speaker.say(text);
         QMessageBox::information(this, tr("Mistake"), text);
     }
@@ -103,10 +107,14 @@ void MainWindow::answer()
 
 void MainWindow::setRate(int rate)
 {
+    QSettings settings;
+    settings.setValue(rateKey, rate);
     speaker.setRate(rate * 0.01);
 }
 
 void MainWindow::setRange(int range)
 {
+    QSettings settings;
+    settings.setValue(rangeKey, range);
     this->range = range;
 }

@@ -10,6 +10,8 @@
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
+    const QString rateKey = "rate";
+    const QString rangeKey = "range";
 
     QLineEdit *answerEdit;
     QTextToSpeech speaker;
