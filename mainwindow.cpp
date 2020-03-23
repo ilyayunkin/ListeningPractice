@@ -39,7 +39,7 @@ public:
     }
     virtual QString formatHint() override
     {
-        return QString("12345678910987654321").left(QString::number(range).length());
+        return QString{"12345678910987654321"}.left(QString::number(range).length());
     }
 };
 class PhoneNumberProvider : public AbstractNumberProvider
@@ -50,7 +50,7 @@ public:
     explicit PhoneNumberProvider()
     {
         randomDevice.seed(time(0));
-        num = QString("%1-%2-%3-%4").arg(rangedRandom(0, 999), 3, 10, QLatin1Char('0'))
+        num = QString{"%1-%2-%3-%4"}.arg(rangedRandom(0, 999), 3, 10, QLatin1Char('0'))
                 .arg(rangedRandom(0, 999), 3, 10, QLatin1Char('0'))
                 .arg(rangedRandom(0, 99), 2, 10, QLatin1Char('0'))
                 .arg(rangedRandom(0, 99), 2, 10, QLatin1Char('0'));
@@ -78,7 +78,7 @@ public:
 class DateProvider : public AbstractNumberProvider
 {
     std::default_random_engine randomDevice;
-    QLocale locale = QLocale(QLocale::English, QLocale::UnitedStates);
+    QLocale locale = QLocale{QLocale::English, QLocale::UnitedStates};
     QDate date;
     QString format = "MMMM d yyyy";
 public:
@@ -123,7 +123,7 @@ public:
 class TimeProvider : public AbstractNumberProvider
 {
     std::default_random_engine randomDevice;
-    QLocale locale = QLocale(QLocale::English, QLocale::UnitedStates);
+    QLocale locale = QLocale{QLocale::English, QLocale::UnitedStates};
     QTime t;
     QString format = "H:mm a";
 public:
@@ -175,7 +175,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     setCentralWidget(new QWidget);
     {
-        QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget());
+        QVBoxLayout *mainLayout = new QVBoxLayout{centralWidget()};
         mainLayout->addWidget(hintLabel = new QLabel);
         {
             QHBoxLayout *layout = new QHBoxLayout;
@@ -203,9 +203,9 @@ MainWindow::MainWindow(QWidget *parent)
         {
             QHBoxLayout *layout = new QHBoxLayout;
             mainLayout->addLayout(layout);
-            layout->addWidget(new QLabel(tr("Speech rate")));
+            layout->addWidget(new QLabel{tr("Speech rate")});
             {
-                QSlider * speechRateSlider = new QSlider(Qt::Horizontal);
+                QSlider * speechRateSlider = new QSlider{Qt::Horizontal};
                 speechRateSlider->setMinimum(-100);
                 speechRateSlider->setMaximum(100);
                 speechRateSlider->setValue(rate);
@@ -217,7 +217,7 @@ MainWindow::MainWindow(QWidget *parent)
         {
             QHBoxLayout *layout = new QHBoxLayout;
             mainLayout->addLayout(layout);
-            layout->addWidget(new QLabel(tr("Numbers range")));
+            layout->addWidget(new QLabel{tr("Numbers range")});
             {
                 QSpinBox * spinBox = new QSpinBox;
                 spinBox->setMinimum(10);
@@ -248,16 +248,16 @@ void MainWindow::speak()
     switch(providerType)
     {
     default:
-    case NUMBER:numberProvider = QSharedPointer<AbstractNumberProvider>(new NumberProvider(range));
+    case NUMBER:numberProvider = QSharedPointer<AbstractNumberProvider>(new NumberProvider{range});
         break;
-    case DATE:numberProvider = QSharedPointer<AbstractNumberProvider>(new DateProvider());
+    case DATE:numberProvider = QSharedPointer<AbstractNumberProvider>(new DateProvider);
         break;
-    case TIME:numberProvider = QSharedPointer<AbstractNumberProvider>(new TimeProvider());
+    case TIME:numberProvider = QSharedPointer<AbstractNumberProvider>(new TimeProvider);
         break;
-    case PHONE_NUMBER:numberProvider = QSharedPointer<AbstractNumberProvider>(new PhoneNumberProvider());
+    case PHONE_NUMBER:numberProvider = QSharedPointer<AbstractNumberProvider>(new PhoneNumberProvider);
         break;
     }
-    hintLabel->setText(QString("Format: %1").arg(numberProvider->formatHint()));
+    hintLabel->setText(QString{"Format: %1"}.arg(numberProvider->formatHint()));
 
     providerType = static_cast<ProviderType>((providerType + 1) % PROVIDERS_COUNT);
     pronounce();
