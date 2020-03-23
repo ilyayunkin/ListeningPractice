@@ -14,6 +14,13 @@ public:
     virtual QString getNumber() = 0;
     virtual QString checkNumber(const QString &input, bool &ok) = 0;
     virtual ~AbstractNumberProvider(){};
+
+    AbstractNumberProvider() = default;
+
+    AbstractNumberProvider & operator=(const AbstractNumberProvider &) = delete;
+    AbstractNumberProvider & operator=(const AbstractNumberProvider &&) = delete;
+    AbstractNumberProvider(AbstractNumberProvider &) = delete;
+    AbstractNumberProvider(AbstractNumberProvider &&) = delete;
 };
 
 class MainWindow : public QMainWindow

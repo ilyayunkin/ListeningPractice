@@ -138,18 +138,18 @@ MainWindow::MainWindow(QWidget *parent)
                 answerEdit = new QLineEdit;
                 layout->addWidget(answerEdit);
 //                answerEdit->setValidator(new QIntValidator);
-                connect(answerEdit, QLineEdit::returnPressed, this, MainWindow::answer);
+                connect(answerEdit, &QLineEdit::returnPressed, this, &MainWindow::answer);
             }
             {
                 QPushButton *answerButton = new QPushButton("OK");
                 layout->addWidget(answerButton);
-                connect(answerButton, QPushButton::clicked, this, MainWindow::answer);
+                connect(answerButton, &QPushButton::clicked, this, &MainWindow::answer);
 
             }
             {
                 QPushButton *repeatButton = new QPushButton(tr("Repeat"));
                 layout->addWidget(repeatButton);
-                connect(repeatButton, QPushButton::clicked, this, MainWindow::repeat);
+                connect(repeatButton, &QPushButton::clicked, this, &MainWindow::repeat);
 
             }
         }
@@ -163,7 +163,7 @@ MainWindow::MainWindow(QWidget *parent)
                 speechRateSlider->setMaximum(100);
                 speechRateSlider->setValue(rate);
                 layout->addWidget(speechRateSlider);
-                connect(speechRateSlider, QSlider::valueChanged, this, MainWindow::setRate);
+                connect(speechRateSlider, &QSlider::valueChanged, this, &MainWindow::setRate);
 
             }
         }
