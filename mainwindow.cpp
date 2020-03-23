@@ -128,6 +128,8 @@ void MainWindow::answer()
         statusLabel->setText(text);
     }
     speak();
+    answerEdit->clear();
+    answerEdit->setFocus();
 }
 
 void MainWindow::setRate(int rate)
