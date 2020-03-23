@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QTextToSpeech>
 #include <QLineEdit>
+#include <QLabel>
 
 #include <random>
 
@@ -14,10 +15,13 @@ class MainWindow : public QMainWindow
     const QString rangeKey = "range";
 
     QLineEdit *answerEdit;
+    QLabel *statusLabel;
     QTextToSpeech speaker;
     std::default_random_engine randomDevice;
     int num;
     int range;
+    int negative = 0;
+    int positive = 0;
 
     void answer();
     void speak();

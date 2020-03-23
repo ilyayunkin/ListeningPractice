@@ -1,6 +1,5 @@
 #include "mainwindow.h"
 
-#include <QLabel>
 #include <QPushButton>
 #include <QSlider>
 #include <QSpinBox>
@@ -77,6 +76,10 @@ MainWindow::MainWindow(QWidget *parent)
                 connect(spinBox, SIGNAL(valueChanged(int)), this, SLOT(setRange(int)));
             }
         }
+        {
+            statusLabel = new QLabel;
+            mainLayout->addWidget(statusLabel);
+        }
     }
 
     randomDevice.seed(time(0));
@@ -112,11 +115,17 @@ void MainWindow::answer()
     if(answerI == num)
     {
         speaker.say(tr("Right!"));
+        positive++;
     }else
     {
         QString text = tr("Auch! It was \n %1").arg(num);
         speaker.say(text);
         QMessageBox::information(this, tr("Mistake"), text);
+        negative++;
+    }
+    {
+        QString text = tr("Positive: %1 Negative: %2").arg(positive).arg(negative);
+        statusLabel->setText(text);
     }
     speak();
 }
