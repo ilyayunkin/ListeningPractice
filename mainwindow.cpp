@@ -11,9 +11,73 @@
 #include <QDebug>
 #include <QIntValidator>
 #include <QSettings>
+#include <QDateTime>
 
 #include <time.h>
 #include <limits>
+#include <random>
+
+class NumberProvider : public AbstractNumberProvider
+{
+    std::default_random_engine randomDevice;
+    int num;
+public:
+    NumberProvider(int range)
+    {
+        randomDevice.seed(time(0));
+        num = randomDevice() % (range + 1);
+    }
+    QString getNumber() override
+    {
+        return QString::number(num);
+    }
+    QString checkNumber(const QString &input, bool &ok) override
+    {
+        ok = input.toInt() == num;
+        return QString::number(num);
+    }
+};
+class DateProvider : public AbstractNumberProvider
+{
+    std::default_random_engine randomDevice;
+    QLocale locale = QLocale(QLocale::English, QLocale::UnitedStates);
+    QDate date;
+    QString format = "MMMM d yyyy";
+public:
+    DateProvider()
+    {
+        randomDevice.seed(time(0));
+        date = QDate(rangedRandom(1900, 2050),
+                     rangedRandom(1, 12),
+                     rangedRandom(1, 31));
+    }
+    QString getNumber() override
+    {
+        return toStr(date);
+    }
+    QString checkNumber(const QString &input, bool &ok) override
+    {
+        QDate inputDate = fromStr(input);
+        ok = inputDate == date;
+        qDebug() << input << inputDate << toStr(inputDate) << date  << toStr(date);
+        return toStr(date);
+    }
+    int rangedRandom(int minimum, int maximum)
+    {
+        int rNum = randomDevice() % (maximum - minimum) + minimum;
+        return rNum;
+    }
+    QString toStr(const QDate &date)
+    {
+        QString dateString = locale.toString(date, format);
+        qDebug() << __LINE__ << dateString;
+        return dateString;
+    }
+    QDate fromStr(const QString &input)
+    {
+        return locale.toDate(input, format);
+    }
+};
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -33,7 +97,7 @@ MainWindow::MainWindow(QWidget *parent)
             {
                 answerEdit = new QLineEdit;
                 layout->addWidget(answerEdit);
-                answerEdit->setValidator(new QIntValidator);
+//                answerEdit->setValidator(new QIntValidator);
                 connect(answerEdit, QLineEdit::returnPressed, this, MainWindow::answer);
             }
             {
@@ -81,12 +145,11 @@ MainWindow::MainWindow(QWidget *parent)
             mainLayout->addWidget(statusLabel);
         }
     }
-
-    randomDevice.seed(time(0));
     {
         setRate(rate);
     }
     speak();
+
 }
 
 MainWindow::~MainWindow()
@@ -95,30 +158,41 @@ MainWindow::~MainWindow()
 
 void MainWindow::speak()
 {
-    num = randomDevice() % (range + 1);
-    pronounce(num);
+    switch(providerType)
+    {
+    default:
+    case NUMBER:numberProvider = QSharedPointer<AbstractNumberProvider>(new NumberProvider(range));
+        break;
+    case DATE:numberProvider = QSharedPointer<AbstractNumberProvider>(new DateProvider());
+        break;
+    }
+
+    providerType = static_cast<ProviderType>((providerType + 1) % PROVIDERS_COUNT);
+    pronounce();
 }
 
 void MainWindow::repeat()
 {
-    pronounce(num);
+    pronounce();
+    answerEdit->setFocus();
 }
 
-void MainWindow::pronounce(int num)
+void MainWindow::pronounce()
 {
-    speaker.say(QString::number(num));
+    speaker.say(numberProvider->getNumber());
 }
 
 void MainWindow::answer()
 {
-    int answerI = answerEdit->text().toInt();
-    if(answerI == num)
+    bool ok;
+    QString rightAnswer = numberProvider->checkNumber(answerEdit->text(), ok);
+    if(ok)
     {
         speaker.say(tr("Right!"));
         positive++;
     }else
     {
-        QString text = tr("Auch! It was \n %1").arg(num);
+        QString text = tr("Auch! It was \n %1").arg(rightAnswer);
         speaker.say(text);
         QMessageBox::information(this, tr("Mistake"), text);
         negative++;
@@ -145,3 +219,5 @@ void MainWindow::setRange(int range)
     settings.setValue(rangeKey, range);
     this->range = range;
 }
+
+
