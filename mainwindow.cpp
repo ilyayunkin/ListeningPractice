@@ -43,6 +43,12 @@ MainWindow::MainWindow(QWidget *parent)
                 connect(answerButton, QPushButton::clicked, this, MainWindow::answer);
 
             }
+            {
+                QPushButton *repeatButton = new QPushButton(tr("Repeat"));
+                layout->addWidget(repeatButton);
+                connect(repeatButton, QPushButton::clicked, this, MainWindow::repeat);
+
+            }
         }
         {
             QHBoxLayout *layout = new QHBoxLayout;
@@ -87,6 +93,16 @@ MainWindow::~MainWindow()
 void MainWindow::speak()
 {
     num = randomDevice() % (range + 1);
+    pronounce(num);
+}
+
+void MainWindow::repeat()
+{
+    pronounce(num);
+}
+
+void MainWindow::pronounce(int num)
+{
     speaker.say(QString::number(num));
 }
 

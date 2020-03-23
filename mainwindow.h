@@ -21,7 +21,9 @@ class MainWindow : public QMainWindow
 
     void answer();
     void speak();
+    void repeat();
     void setRate(int rate);
+    void pronounce(int num);
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
