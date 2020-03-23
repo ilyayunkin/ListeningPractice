@@ -26,6 +26,7 @@ TRANSLATIONS += \
     NumbersListeningPractice_ru_RU.ts
 
 QMAKE_CXXFLAGS+= -Wall -Werror
+QMAKE_POST_LINK+= windeployqt $$OUT_PWD/$$DESTDIR
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
