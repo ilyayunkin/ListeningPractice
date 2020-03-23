@@ -24,6 +24,7 @@ class MainWindow : public QMainWindow
     {
         NUMBER,
         DATE,
+        TIME,
 
         PROVIDERS_COUNT
     };
@@ -47,9 +48,8 @@ class MainWindow : public QMainWindow
     void repeat();
     void setRate(int rate);
     void pronounce();
-//    int rangedRandom(int minimum, int maximum);
 public:
-    MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 public slots:
     void setRange(int range);

@@ -25,6 +25,8 @@ HEADERS += \
 TRANSLATIONS += \
     NumbersListeningPractice_ru_RU.ts
 
+QMAKE_CXXFLAGS+= -Wall -Werror
+
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin

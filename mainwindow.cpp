@@ -22,7 +22,7 @@ class NumberProvider : public AbstractNumberProvider
     std::default_random_engine randomDevice;
     int num;
 public:
-    NumberProvider(int range)
+    explicit NumberProvider(int range)
     {
         randomDevice.seed(time(0));
         num = randomDevice() % (range + 1);
@@ -76,6 +76,46 @@ public:
     QDate fromStr(const QString &input)
     {
         return locale.toDate(input, format);
+    }
+};
+class TimeProvider : public AbstractNumberProvider
+{
+    std::default_random_engine randomDevice;
+    QLocale locale = QLocale(QLocale::English, QLocale::UnitedStates);
+    QTime t;
+    QString format = "H:mm a";
+public:
+    TimeProvider()
+    {
+        randomDevice.seed(time(0));
+        t = QTime(rangedRandom(0, 23),
+                     rangedRandom(0, 59));
+    }
+    QString getNumber() override
+    {
+        return toStr(t);
+    }
+    QString checkNumber(const QString &input, bool &ok) override
+    {
+        QTime inputTime = fromStr(input);
+        ok = inputTime == t;
+        qDebug() << input << inputTime << toStr(inputTime) << t  << toStr(t);
+        return toStr(t);
+    }
+    int rangedRandom(int minimum, int maximum)
+    {
+        int rNum = randomDevice() % (maximum - minimum) + minimum;
+        return rNum;
+    }
+    QString toStr(const QTime &time)
+    {
+        QString timeString = locale.toString(time, format);
+        qDebug() << __LINE__ << timeString;
+        return timeString;
+    }
+    QTime fromStr(const QString &input)
+    {
+        return locale.toTime(input, format);
     }
 };
 
@@ -164,6 +204,8 @@ void MainWindow::speak()
     case NUMBER:numberProvider = QSharedPointer<AbstractNumberProvider>(new NumberProvider(range));
         break;
     case DATE:numberProvider = QSharedPointer<AbstractNumberProvider>(new DateProvider());
+        break;
+    case TIME:numberProvider = QSharedPointer<AbstractNumberProvider>(new TimeProvider());
         break;
     }
 
