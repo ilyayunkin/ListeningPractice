@@ -8,7 +8,8 @@
 #include <QCheckBox>
 
 #include <QSharedPointer>
-#include <QVector>
+
+#include <array>
 
 class AbstractNumberProvider
 {
@@ -29,10 +30,26 @@ public:
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
+public:
+    enum ProviderType
+    {
+        NUMBER,
+        DATE,
+        TIME,
+        PHONE_NUMBER,
+
+        PROVIDERS_COUNT
+    };
+    Q_ENUM(ProviderType)
+
+    explicit MainWindow(QWidget *parent = nullptr);
+    ~MainWindow();
+
+private:
     const QString rateKey = "rate";
     const QString rangeKey = "range";
 
-    QVector<QCheckBox *> checkBoxes;
+    std::array<QCheckBox *, PROVIDERS_COUNT> checkBoxes;
     QLineEdit *answerEdit;
     QLabel *hintLabel;
     QLabel *statusLabel;
@@ -52,21 +69,9 @@ class MainWindow : public QMainWindow
     void setRate(int rate);
     void pronounce();
     void checked();
-public:
-    enum ProviderType
-    {
-        NUMBER,
-        DATE,
-        TIME,
-        PHONE_NUMBER,
 
-        PROVIDERS_COUNT
-    };
     ProviderType providerType = NUMBER;
-    Q_ENUM(ProviderType)
 
-    explicit MainWindow(QWidget *parent = nullptr);
-    ~MainWindow();
 public slots:
     void setRange(int range);
 };

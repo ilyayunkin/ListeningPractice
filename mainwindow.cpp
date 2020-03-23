@@ -180,7 +180,6 @@ MainWindow::MainWindow(QWidget *parent)
         {
             QHBoxLayout *layout = new QHBoxLayout;
             mainLayout->addLayout(layout);
-            checkBoxes.reserve(PROVIDERS_COUNT);
             for(int i = NUMBER; i < PROVIDERS_COUNT; ++i)
             {
                 QMetaEnum metaEnum =
@@ -189,7 +188,7 @@ MainWindow::MainWindow(QWidget *parent)
                 QCheckBox *cb = new QCheckBox(value);
                 cb->setChecked(true);
                 layout->addWidget(cb);
-                checkBoxes.push_back(cb);
+                checkBoxes[i] = cb;
                 connect(cb, &QCheckBox::toggled, this, &MainWindow::checked);
             }
         }
