@@ -21,8 +21,9 @@ class NumberProvider : public AbstractNumberProvider
 {
     std::default_random_engine randomDevice;
     int num;
+    int range;
 public:
-    explicit NumberProvider(int range)
+    explicit NumberProvider(int range) : range(range)
     {
         randomDevice.seed(time(0));
         num = randomDevice() % (range + 1);
@@ -35,6 +36,43 @@ public:
     {
         ok = input.toInt() == num;
         return QString::number(num);
+    }
+    virtual QString formatHint() override
+    {
+        return QString("12345678910987654321").left(QString::number(range).length());
+    }
+};
+class PhoneNumberProvider : public AbstractNumberProvider
+{
+    std::default_random_engine randomDevice;
+    QString num;
+public:
+    explicit PhoneNumberProvider()
+    {
+        randomDevice.seed(time(0));
+        num = QString("%1-%2-%3-%4").arg(rangedRandom(0, 999), 3, 10, QLatin1Char('0'))
+                .arg(rangedRandom(0, 999), 3, 10, QLatin1Char('0'))
+                .arg(rangedRandom(0, 99), 2, 10, QLatin1Char('0'))
+                .arg(rangedRandom(0, 99), 2, 10, QLatin1Char('0'));
+    }
+    QString getNumber() override
+    {
+        qDebug() << __LINE__ << num;
+        return QObject::tr("Phone number ") + num;
+    }
+    QString checkNumber(const QString &input, bool &ok) override
+    {
+        ok = input == num;
+        return num;
+    }
+    int rangedRandom(int minimum, int maximum)
+    {
+        int rNum = randomDevice() % (maximum - minimum) + minimum;
+        return rNum;
+    }
+    virtual QString formatHint() override
+    {
+        return "123-456-78-90";
     }
 };
 class DateProvider : public AbstractNumberProvider
@@ -77,6 +115,10 @@ public:
     {
         return locale.toDate(input, format);
     }
+    virtual QString formatHint() override
+    {
+        return "January 56 1976";
+    }
 };
 class TimeProvider : public AbstractNumberProvider
 {
@@ -117,6 +159,10 @@ public:
     {
         return locale.toTime(input, format);
     }
+    virtual QString formatHint() override
+    {
+        return "01:45 pm";
+    }
 };
 
 MainWindow::MainWindow(QWidget *parent)
@@ -125,11 +171,12 @@ MainWindow::MainWindow(QWidget *parent)
 {
     QSettings settings;
     int rate = settings.value(rateKey, 0).toInt();
-    range = settings.value(rangeKey, 100).toInt();
+    range = settings.value(rangeKey, 999).toInt();
 
     setCentralWidget(new QWidget);
     {
         QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget());
+        mainLayout->addWidget(hintLabel = new QLabel);
         {
             QHBoxLayout *layout = new QHBoxLayout;
             mainLayout->addLayout(layout);
@@ -207,7 +254,10 @@ void MainWindow::speak()
         break;
     case TIME:numberProvider = QSharedPointer<AbstractNumberProvider>(new TimeProvider());
         break;
+    case PHONE_NUMBER:numberProvider = QSharedPointer<AbstractNumberProvider>(new PhoneNumberProvider());
+        break;
     }
+    hintLabel->setText(QString("Format: %1").arg(numberProvider->formatHint()));
 
     providerType = static_cast<ProviderType>((providerType + 1) % PROVIDERS_COUNT);
     pronounce();

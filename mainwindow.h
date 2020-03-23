@@ -13,6 +13,7 @@ class AbstractNumberProvider
 public:
     virtual QString getNumber() = 0;
     virtual QString checkNumber(const QString &input, bool &ok) = 0;
+    virtual QString formatHint() = 0;
     virtual ~AbstractNumberProvider(){};
 
     AbstractNumberProvider() = default;
@@ -32,6 +33,7 @@ class MainWindow : public QMainWindow
         NUMBER,
         DATE,
         TIME,
+        PHONE_NUMBER,
 
         PROVIDERS_COUNT
     };
@@ -40,6 +42,7 @@ class MainWindow : public QMainWindow
     const QString rangeKey = "range";
 
     QLineEdit *answerEdit;
+    QLabel *hintLabel;
     QLabel *statusLabel;
     QTextToSpeech speaker;
 
