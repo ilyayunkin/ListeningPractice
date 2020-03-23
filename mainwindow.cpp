@@ -12,6 +12,7 @@
 #include <QIntValidator>
 #include <QSettings>
 #include <QDateTime>
+#include <QMetaEnum>
 
 #include <time.h>
 #include <limits>
@@ -176,6 +177,22 @@ MainWindow::MainWindow(QWidget *parent)
     setCentralWidget(new QWidget);
     {
         QVBoxLayout *mainLayout = new QVBoxLayout{centralWidget()};
+        {
+            QHBoxLayout *layout = new QHBoxLayout;
+            mainLayout->addLayout(layout);
+            checkBoxes.reserve(PROVIDERS_COUNT);
+            for(int i = NUMBER; i < PROVIDERS_COUNT; ++i)
+            {
+                QMetaEnum metaEnum =
+                        QMetaEnum::fromType<ProviderType>();
+                const char *value = metaEnum.valueToKey(i);
+                QCheckBox *cb = new QCheckBox(value);
+                cb->setChecked(true);
+                layout->addWidget(cb);
+                checkBoxes.push_back(cb);
+                connect(cb, &QCheckBox::toggled, this, &MainWindow::checked);
+            }
+        }
         mainLayout->addWidget(hintLabel = new QLabel);
         {
             QHBoxLayout *layout = new QHBoxLayout;
@@ -197,7 +214,6 @@ MainWindow::MainWindow(QWidget *parent)
                 QPushButton *repeatButton = new QPushButton(tr("Repeat"));
                 layout->addWidget(repeatButton);
                 connect(repeatButton, &QPushButton::clicked, this, &MainWindow::repeat);
-
             }
         }
         {
@@ -211,7 +227,6 @@ MainWindow::MainWindow(QWidget *parent)
                 speechRateSlider->setValue(rate);
                 layout->addWidget(speechRateSlider);
                 connect(speechRateSlider, &QSlider::valueChanged, this, &MainWindow::setRate);
-
             }
         }
         {
@@ -245,22 +260,33 @@ MainWindow::~MainWindow()
 
 void MainWindow::speak()
 {
-    switch(providerType)
+    if(on)
     {
-    default:
-    case NUMBER:numberProvider = QSharedPointer<AbstractNumberProvider>(new NumberProvider{range});
-        break;
-    case DATE:numberProvider = QSharedPointer<AbstractNumberProvider>(new DateProvider);
-        break;
-    case TIME:numberProvider = QSharedPointer<AbstractNumberProvider>(new TimeProvider);
-        break;
-    case PHONE_NUMBER:numberProvider = QSharedPointer<AbstractNumberProvider>(new PhoneNumberProvider);
-        break;
-    }
-    hintLabel->setText(QString{"Format: %1"}.arg(numberProvider->formatHint()));
+        while(!checkBoxes[providerType]->isChecked())
+        {
+            providerType = static_cast<ProviderType>((providerType + 1) % PROVIDERS_COUNT);
+        }
 
-    providerType = static_cast<ProviderType>((providerType + 1) % PROVIDERS_COUNT);
-    pronounce();
+        switch(providerType)
+        {
+        default:
+        case NUMBER:numberProvider = QSharedPointer<AbstractNumberProvider>(new NumberProvider{range});
+            break;
+        case DATE:numberProvider = QSharedPointer<AbstractNumberProvider>(new DateProvider);
+            break;
+        case TIME:numberProvider = QSharedPointer<AbstractNumberProvider>(new TimeProvider);
+            break;
+        case PHONE_NUMBER:numberProvider = QSharedPointer<AbstractNumberProvider>(new PhoneNumberProvider);
+            break;
+        }
+        hintLabel->setText(QString{"Format: %1"}.arg(numberProvider->formatHint()));
+
+        do
+        {
+            providerType = static_cast<ProviderType>((providerType + 1) % PROVIDERS_COUNT);
+        }while(!checkBoxes[providerType]->isChecked());
+        pronounce();
+    }
 }
 
 void MainWindow::repeat()
@@ -312,4 +338,18 @@ void MainWindow::setRange(int range)
     this->range = range;
 }
 
+void MainWindow::checked()
+{
+    bool oldOn = on;
+    on = false;
+    for(auto cb : checkBoxes)
+    {
+        on |= cb->isChecked();
+    }
+
+    if(!oldOn && on)
+    {
+        speak();
+    }
+}
 
