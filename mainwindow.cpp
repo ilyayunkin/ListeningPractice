@@ -7,6 +7,7 @@
 
 #include <QHBoxLayout>
 #include <QVBoxLayout>
+#include <QGridLayout>
 
 #include <QDebug>
 #include <QIntValidator>
@@ -59,7 +60,7 @@ public:
     QString getNumber() override
     {
         qDebug() << __LINE__ << num;
-        return QObject::tr("Phone number ") + num;
+        return num;
     }
     QString checkNumber(const QString &input, bool &ok) override
     {
@@ -178,18 +179,24 @@ MainWindow::MainWindow(QWidget *parent)
     {
         QVBoxLayout *mainLayout = new QVBoxLayout{centralWidget()};
         {
-            QHBoxLayout *layout = new QHBoxLayout;
+            QGridLayout *layout = new QGridLayout;
             mainLayout->addLayout(layout);
             for(int i = NUMBER; i < PROVIDERS_COUNT; ++i)
             {
-                QMetaEnum metaEnum =
-                        QMetaEnum::fromType<ProviderType>();
-                const char *value = metaEnum.valueToKey(i);
-                QCheckBox *cb = new QCheckBox(value);
-                cb->setChecked(true);
-                layout->addWidget(cb);
-                checkBoxes[i] = cb;
-                connect(cb, &QCheckBox::toggled, this, &MainWindow::checked);
+                {
+                    QMetaEnum metaEnum =
+                            QMetaEnum::fromType<ProviderType>();
+                    const char *value = metaEnum.valueToKey(i);
+                    QCheckBox *cb = new QCheckBox(value);
+                    cb->setChecked(true);
+                    providerCheckBoxes[i] = cb;
+                    connect(cb, &QCheckBox::toggled, this, &MainWindow::checked);
+                }
+                layout->addWidget(providerCheckBoxes[i], 0, i);
+                {
+                    labels[i] = new QLabel;
+                }
+                layout->addWidget(labels[i], 1, i);
             }
         }
         mainLayout->addWidget(hintLabel = new QLabel);
@@ -261,11 +268,6 @@ void MainWindow::speak()
 {
     if(on)
     {
-        while(!checkBoxes[providerType]->isChecked())
-        {
-            providerType = static_cast<ProviderType>((providerType + 1) % PROVIDERS_COUNT);
-        }
-
         switch(providerType)
         {
         default:
@@ -279,11 +281,6 @@ void MainWindow::speak()
             break;
         }
         hintLabel->setText(QString{"Format: %1"}.arg(numberProvider->formatHint()));
-
-        do
-        {
-            providerType = static_cast<ProviderType>((providerType + 1) % PROVIDERS_COUNT);
-        }while(!checkBoxes[providerType]->isChecked());
         pronounce();
     }
 }
@@ -302,22 +299,37 @@ void MainWindow::pronounce()
 void MainWindow::answer()
 {
     bool ok;
-    QString rightAnswer = numberProvider->checkNumber(answerEdit->text(), ok);
-    if(ok)
     {
-        speaker.say(tr("Right!"));
-        positive++;
-    }else
-    {
-        QString text = tr("Auch! It was \n %1").arg(rightAnswer);
-        speaker.say(text);
-        QMessageBox::information(this, tr("Mistake"), text);
-        negative++;
+        QString rightAnswer = numberProvider->checkNumber(answerEdit->text(), ok);
+        ++(answerCounter[providerType]);
+        if(ok)
+        {
+            speaker.say(tr("Right!"));
+            positive++;
+            ++(rightAnswersCounter[providerType]);
+        }else
+        {
+            QString text = tr("Auch! It was \n %1").arg(rightAnswer);
+            speaker.say(text);
+            QMessageBox::information(this, tr("Mistake"), text);
+            negative++;
+        }
+        {
+            QString text = tr("Positive: %1 Negative: %2").arg(positive).arg(negative);
+            statusLabel->setText(text);
+        }
+        labels[providerType]->setText(tr("%1/%2").
+                                      arg(rightAnswersCounter[providerType]).
+                                      arg(answerCounter[providerType]));
     }
     {
-        QString text = tr("Positive: %1 Negative: %2").arg(positive).arg(negative);
-        statusLabel->setText(text);
+        do
+        {
+            providerType = static_cast<ProviderType>((providerType + 1) % PROVIDERS_COUNT);
+        }while(!providerCheckBoxes[providerType]->isChecked());
     }
+
+
     speak();
     answerEdit->clear();
     answerEdit->setFocus();
@@ -341,7 +353,7 @@ void MainWindow::checked()
 {
     bool oldOn = on;
     on = false;
-    for(auto cb : checkBoxes)
+    for(auto cb : providerCheckBoxes)
     {
         on |= cb->isChecked();
     }
