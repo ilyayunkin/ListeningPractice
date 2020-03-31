@@ -1,13 +1,37 @@
 #include "mainwindow.h"
 
 #include <QApplication>
+#include <QSslSocket>
+#include <QDebug>
+#include <QSharedPointer>
+
+#include "WordsStorage.h"
+#include "ProviderFactory.h"
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     a.setOrganizationName("Ilya");
+    a.setApplicationName("ListeningPractice");
 
-    MainWindow w;
+    qDebug() << "C++ version: " << __cplusplus;
+    qDebug() << "Qt version: " << QT_VERSION_STR;
+
+#if __GNUC__
+    qDebug() << "GCC version: " << __MINGW_GCC_VERSION;
+#endif
+
+    bool ssl = QSslSocket::supportsSsl();
+    qDebug() << "Supports SSL: " << ssl
+             << QSslSocket::sslLibraryBuildVersionString()
+             << QSslSocket::sslLibraryVersionString();
+
+    QUrl wordsUrl("https://www.ef.com/wwen/english-resources/english-vocabulary/top-3000-words");
+    WordsStorage storage(wordsUrl);
+    ProviderFactory factory(storage);
+
+    MainWindow w(factory);
     w.show();
+
     return a.exec();
 }

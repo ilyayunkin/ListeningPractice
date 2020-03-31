@@ -6,19 +6,20 @@
 #include <QLineEdit>
 #include <QLabel>
 #include <QCheckBox>
-
 #include <QSharedPointer>
 
 #include <array>
 
-#include "AbstractNumberProvider.h"
+#include "ProviderFactory.h"
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
+
+    ProviderFactory &providerFactory;
 public:
 
-    explicit MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(ProviderFactory &providerFactory, QWidget *parent = nullptr);
     ~MainWindow();
 
 private:
@@ -31,6 +32,7 @@ private:
         tr("Date"),
         tr("Time"),
         tr("Phone number"),
+        tr("Word"),
     };
 
     std::array<QCheckBox *, PROVIDERS_COUNT> providerCheckBoxes;
@@ -42,7 +44,7 @@ private:
     QLabel *statusLabel;
     QTextToSpeech speaker;
 
-    QSharedPointer<AbstractNumberProvider> numberProvider;
+    QSharedPointer<AbstractListeningProvider> numberProvider;
 
     int num;
     int range;
@@ -61,5 +63,6 @@ private:
 
 public slots:
     void setRange(int range);
+    void loadImage();
 };
 #endif // MAINWINDOW_H

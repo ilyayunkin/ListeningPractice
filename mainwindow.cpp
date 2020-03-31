@@ -12,10 +12,10 @@
 #include <QDebug>
 #include <QIntValidator>
 #include <QSettings>
-#include <QMetaEnum>
 
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(ProviderFactory &provider, QWidget *parent)
     : QMainWindow(parent),
+      providerFactory(provider),
       num(0)
 {
     QSettings settings;
@@ -105,7 +105,6 @@ MainWindow::MainWindow(QWidget *parent)
         setRate(rate);
     }
     speak();
-
 }
 
 MainWindow::~MainWindow()
@@ -116,7 +115,7 @@ void MainWindow::speak()
 {
     if(on)
     {
-        numberProvider = AbstractNumberProvider::getProvider(providerType, range);
+        numberProvider = providerFactory.getProvider(providerType, range);
         hintLabel->setText(QString{"Format: %1"}.arg(numberProvider->formatHint()));
         pronounce();
     }
@@ -130,14 +129,14 @@ void MainWindow::repeat()
 
 void MainWindow::pronounce()
 {
-    speaker.say(numberProvider->getNumber());
+    speaker.say(numberProvider->get());
 }
 
 void MainWindow::answer()
 {
     bool ok;
     {
-        QString rightAnswer = numberProvider->checkNumber(answerEdit->text(), ok);
+        QString rightAnswer = numberProvider->check(answerEdit->text(), ok);
         ++(answerCounter[providerType]);
         if(ok)
         {
@@ -165,7 +164,6 @@ void MainWindow::answer()
             providerType = static_cast<ProviderType>((providerType + 1) % PROVIDERS_COUNT);
         }while(!providerCheckBoxes[providerType]->isChecked());
     }
-
 
     speak();
     answerEdit->clear();
@@ -211,3 +209,7 @@ void MainWindow::checked()
     settings.setValue(onKey, onList);
 }
 
+void MainWindow::loadImage()
+{
+    qDebug() << __FUNCTION__;
+}

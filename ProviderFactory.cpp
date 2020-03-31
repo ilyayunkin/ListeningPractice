@@ -1,14 +1,15 @@
-#include "AbstractNumberProvider.h"
+#include "ProviderFactory.h"
 
 #include <QDateTime>
 
 #include <QDebug>
+#include <QSharedPointer>
 
 #include <time.h>
 #include <limits>
 #include <random>
 
-class NumberProvider : public AbstractNumberProvider
+class NumberProvider : public AbstractListeningProvider
 {
     std::default_random_engine randomDevice;
     int num;
@@ -19,11 +20,11 @@ public:
         randomDevice.seed(time(0));
         num = randomDevice() % (range + 1);
     }
-    QString getNumber() override
+    QString get() override
     {
         return QString::number(num);
     }
-    QString checkNumber(const QString &input, bool &ok) override
+    QString check(const QString &input, bool &ok) override
     {
         ok = input.toInt() == num;
         return QString::number(num);
@@ -33,7 +34,7 @@ public:
         return QString{"12345678910987654321"}.left(QString::number(range).length());
     }
 };
-class PhoneNumberProvider : public AbstractNumberProvider
+class PhoneNumberProvider : public AbstractListeningProvider
 {
     std::default_random_engine randomDevice;
     QString num;
@@ -46,12 +47,12 @@ public:
                 .arg(rangedRandom(0, 99), 2, 10, QLatin1Char('0'))
                 .arg(rangedRandom(0, 99), 2, 10, QLatin1Char('0'));
     }
-    QString getNumber() override
+    QString get() override
     {
         qDebug() << __LINE__ << num;
         return num;
     }
-    QString checkNumber(const QString &input, bool &ok) override
+    QString check(const QString &input, bool &ok) override
     {
         ok = input == num;
         return num;
@@ -66,7 +67,7 @@ public:
         return "123-456-78-90";
     }
 };
-class DateProvider : public AbstractNumberProvider
+class DateProvider : public AbstractListeningProvider
 {
     std::default_random_engine randomDevice;
     QLocale locale = QLocale{QLocale::English, QLocale::UnitedStates};
@@ -80,11 +81,11 @@ public:
                      rangedRandom(1, 12),
                      rangedRandom(1, 31));
     }
-    QString getNumber() override
+    QString get() override
     {
         return toStr(date);
     }
-    QString checkNumber(const QString &input, bool &ok) override
+    QString check(const QString &input, bool &ok) override
     {
         QDate inputDate = fromStr(input);
         ok = inputDate == date;
@@ -111,7 +112,7 @@ public:
         return "January 56 1976";
     }
 };
-class TimeProvider : public AbstractNumberProvider
+class TimeProvider : public AbstractListeningProvider
 {
     std::default_random_engine randomDevice;
     QLocale locale = QLocale{QLocale::English, QLocale::UnitedStates};
@@ -124,11 +125,11 @@ public:
         t = QTime(rangedRandom(0, 23),
                      rangedRandom(0, 59));
     }
-    QString getNumber() override
+    QString get() override
     {
         return toStr(t);
     }
-    QString checkNumber(const QString &input, bool &ok) override
+    QString check(const QString &input, bool &ok) override
     {
         QTime inputTime = fromStr(input);
         ok = inputTime == t;
@@ -156,18 +157,59 @@ public:
     }
 };
 
-QSharedPointer<AbstractNumberProvider> AbstractNumberProvider::getProvider(ProviderType providerType, int range)
+class WordProvider : public AbstractListeningProvider
+{
+    std::default_random_engine randomDevice;
+    QString w;
+    QLocale locale = QLocale{QLocale::English, QLocale::UnitedStates};
+public:
+    WordProvider(WordsStorage &s)
+    {
+        randomDevice.seed(time(0));
+        if(s.empty())
+        {
+            w = "cat";
+        }else
+        {
+            long count = s.size();
+            long i = randomDevice() % count;
+            w = s.getWord(i);
+        }
+    }
+    QString get() override
+    {
+        return w;
+    }
+    QString check(const QString &input, bool &ok) override
+    {
+        ok = input.toLower() == w.toLower();
+        return w;
+    }
+    virtual QString formatHint() override
+    {
+        return "cat";
+    }
+};
+
+QSharedPointer<AbstractListeningProvider> ProviderFactory::getProvider(ProviderType providerType, int range)
 {
     switch(providerType)
     {
     default:
-    case NUMBER: return QSharedPointer<AbstractNumberProvider>(new NumberProvider{range});
+    case NUMBER: return QSharedPointer<AbstractListeningProvider>(new NumberProvider{range});
         break;
-    case DATE: return QSharedPointer<AbstractNumberProvider>(new DateProvider);
+    case DATE: return QSharedPointer<AbstractListeningProvider>(new DateProvider);
         break;
-    case TIME: return QSharedPointer<AbstractNumberProvider>(new TimeProvider);
+    case TIME: return QSharedPointer<AbstractListeningProvider>(new TimeProvider);
         break;
-    case PHONE_NUMBER: return QSharedPointer<AbstractNumberProvider>(new PhoneNumberProvider);
+    case PHONE_NUMBER: return QSharedPointer<AbstractListeningProvider>(new PhoneNumberProvider);
+        break;
+    case WORD: return QSharedPointer<AbstractListeningProvider>(new WordProvider(s));
         break;
     }
+}
+
+ProviderFactory::ProviderFactory(WordsStorage &s, QObject *parent) :
+    QObject(parent), s(s)
+{
 }
