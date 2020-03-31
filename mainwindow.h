@@ -11,36 +11,12 @@
 
 #include <array>
 
-class AbstractNumberProvider
-{
-public:
-    virtual QString getNumber() = 0;
-    virtual QString checkNumber(const QString &input, bool &ok) = 0;
-    virtual QString formatHint() = 0;
-    virtual ~AbstractNumberProvider(){};
-
-    AbstractNumberProvider() = default;
-
-    AbstractNumberProvider & operator=(const AbstractNumberProvider &) = delete;
-    AbstractNumberProvider & operator=(const AbstractNumberProvider &&) = delete;
-    AbstractNumberProvider(AbstractNumberProvider &) = delete;
-    AbstractNumberProvider(AbstractNumberProvider &&) = delete;
-};
+#include "AbstractNumberProvider.h"
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 public:
-    enum ProviderType
-    {
-        NUMBER,
-        DATE,
-        TIME,
-        PHONE_NUMBER,
-
-        PROVIDERS_COUNT
-    };
-    Q_ENUM(ProviderType)
 
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
@@ -48,6 +24,14 @@ public:
 private:
     const QString rateKey = "rate";
     const QString rangeKey = "range";
+    const QString onKey = "on";
+    std::array<QString, PROVIDERS_COUNT> providerTitles =
+    {
+        tr("Number"),
+        tr("Date"),
+        tr("Time"),
+        tr("Phone number"),
+    };
 
     std::array<QCheckBox *, PROVIDERS_COUNT> providerCheckBoxes;
     std::array<QLabel *, PROVIDERS_COUNT> labels;
