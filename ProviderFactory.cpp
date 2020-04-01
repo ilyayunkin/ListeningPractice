@@ -191,6 +191,44 @@ public:
     }
 };
 
+class PhraseProvider : public AbstractListeningProvider
+{
+    std::default_random_engine randomDevice;
+    QString w;
+    QLocale locale = QLocale{QLocale::English, QLocale::UnitedStates};
+public:
+    PhraseProvider(PhrasesStorage &s)
+    {
+        randomDevice.seed(time(0));
+        if(s.empty())
+        {
+            w = "paper tiger";
+        }else
+        {
+            long count = s.size();
+            long i = randomDevice() % count;
+            w = s.getWord(i);
+        }
+    }
+    QString get() override
+    {
+        return w;
+    }
+    QString check(const QString &input, bool &ok) override
+    {
+        ok = input.toLower() == w.toLower();
+        if(!ok){
+            qDebug() << input.toLatin1() << input.toLatin1().toLower() << input.toLatin1().toHex();
+            qDebug() << w.toLatin1() << w.toLatin1().toLower() << w.toLatin1().toHex();
+        }
+        return w;
+    }
+    virtual QString formatHint() override
+    {
+        return "cat";
+    }
+};
+
 QSharedPointer<AbstractListeningProvider> ProviderFactory::getProvider(ProviderType providerType, int range)
 {
     switch(providerType)
@@ -204,12 +242,14 @@ QSharedPointer<AbstractListeningProvider> ProviderFactory::getProvider(ProviderT
         break;
     case PHONE_NUMBER: return QSharedPointer<AbstractListeningProvider>(new PhoneNumberProvider);
         break;
-    case WORD: return QSharedPointer<AbstractListeningProvider>(new WordProvider(s));
+    case WORD: return QSharedPointer<AbstractListeningProvider>(new WordProvider(wordsStorage));
+        break;
+    case PHRASE: return QSharedPointer<AbstractListeningProvider>(new PhraseProvider(phrasesStorage));
         break;
     }
 }
 
-ProviderFactory::ProviderFactory(WordsStorage &s, QObject *parent) :
-    QObject(parent), s(s)
+ProviderFactory::ProviderFactory(WordsStorage &wordsStorage, PhrasesStorage &phrasesStorage, QObject *parent) :
+    QObject(parent), wordsStorage(wordsStorage), phrasesStorage(phrasesStorage)
 {
 }

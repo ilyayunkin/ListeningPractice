@@ -33,6 +33,7 @@ private:
         tr("Time"),
         tr("Phone number"),
         tr("Word"),
+        tr("Phrase"),
     };
 
     std::array<QCheckBox *, PROVIDERS_COUNT> providerCheckBoxes;

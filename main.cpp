@@ -6,6 +6,7 @@
 #include <QSharedPointer>
 
 #include "WordsStorage.h"
+#include "PhrasesStorage.h"
 #include "ProviderFactory.h"
 
 int main(int argc, char *argv[])
@@ -27,8 +28,11 @@ int main(int argc, char *argv[])
              << QSslSocket::sslLibraryVersionString();
 
     QUrl wordsUrl("https://www.ef.com/wwen/english-resources/english-vocabulary/top-3000-words");
-    WordsStorage storage(wordsUrl);
-    ProviderFactory factory(storage);
+    WordsStorage wStorage(wordsUrl);
+    QUrl phrasesUrl("https://www.phrases.org.uk/meanings/phrases-and-sayings-list.html");
+    PhrasesStorage pStorage(phrasesUrl);
+
+    ProviderFactory factory(wStorage, pStorage);
 
     MainWindow w(factory);
     w.show();

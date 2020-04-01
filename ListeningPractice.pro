@@ -17,6 +17,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     AbstractListeningProvider.cpp \
+    PhrasesStorage.cpp \
     ProviderFactory.cpp \
     WordsStorage.cpp \
     main.cpp \
@@ -24,6 +25,7 @@ SOURCES += \
 
 HEADERS += \
     AbstractListeningProvider.h \
+    PhrasesStorage.h \
     ProviderFactory.h \
     WordsStorage.h \
     mainwindow.h

@@ -1,4 +1,4 @@
-#include "WordsStorage.h"
+#include "PhrasesStorage.h"
 #include <QDebug>
 
 #include <QFile>
@@ -9,7 +9,7 @@
 
 #include <algorithm>
 
-WordsStorage::WordsStorage(QUrl imageUrl, QObject *parent) :
+PhrasesStorage::PhrasesStorage(QUrl imageUrl, QObject *parent) :
     QObject(parent)
 {
     if(!loadWordsFromFile())
@@ -18,12 +18,12 @@ WordsStorage::WordsStorage(QUrl imageUrl, QObject *parent) :
     }
 }
 
-WordsStorage::~WordsStorage()
+PhrasesStorage::~PhrasesStorage()
 {
 
 }
 
-void WordsStorage::fileDownloaded(QNetworkReply *r)
+void PhrasesStorage::fileDownloaded(QNetworkReply *r)
 {
     qDebug() << __PRETTY_FUNCTION__;
     m_DownloadedData = r->readAll();
@@ -48,10 +48,15 @@ void WordsStorage::fileDownloaded(QNetworkReply *r)
         for(const auto &row : rowsList)
         {
             if(!row.isEmpty() &&
-                    !row.contains(' ') &&
-                    std::all_of(row.begin(), row.end(), [](QChar c){return isalpha(c.toLatin1());}))
+                    std::all_of(row.begin(), row.end(),
+                                [](QChar c){return isalpha(c.toLatin1()) || c.toLatin1() == ' ';}))
             {
-                words+= row.toLower();
+                QStringList wordsList = row.split(' ');
+                wordsList.erase(std::remove_if(wordsList.begin(),
+                                               wordsList.end(),
+                                               [](const QString &s){return s.isEmpty();}),
+                                wordsList.end());
+                words+= wordsList.join(' ').toLower();
             }
         }
     }
@@ -59,7 +64,7 @@ void WordsStorage::fileDownloaded(QNetworkReply *r)
     words.removeDuplicates();
     QDateTime t3 = QDateTime::currentDateTime();
     {
-        QFile f(wordsFileName);
+        QFile f(phrasesFileName);
         f.open(QIODevice::WriteOnly);
         if(f.isOpen())
         {
@@ -78,16 +83,16 @@ void WordsStorage::fileDownloaded(QNetworkReply *r)
     emit downloaded();
 }
 
-QByteArray WordsStorage::downloadedData() const
+QByteArray PhrasesStorage::downloadedData() const
 {
     return m_DownloadedData;
 }
 
-bool WordsStorage::loadWordsFromFile()
+bool PhrasesStorage::loadWordsFromFile()
 {
     bool ok = false;
 
-    QFile f(wordsFileName);
+    QFile f(phrasesFileName);
     f.open(QIODevice::ReadOnly);
     if(f.isOpen())
     {
@@ -105,7 +110,7 @@ bool WordsStorage::loadWordsFromFile()
     return ok;
 }
 
-void WordsStorage::requestWordsFromTheInternet(QUrl imageUrl)
+void PhrasesStorage::requestWordsFromTheInternet(QUrl imageUrl)
 {
     QNetworkRequest request(imageUrl);
     m_WebCtrl.get(request);
@@ -113,7 +118,7 @@ void WordsStorage::requestWordsFromTheInternet(QUrl imageUrl)
             this, SLOT (fileDownloaded(QNetworkReply*)));
 }
 
-QString WordsStorage::getWord(long index)
+QString PhrasesStorage::getWord(long index)
 {
     assert(!empty());
     assert(index < size());

@@ -10,6 +10,7 @@ enum ProviderType
     TIME,
     PHONE_NUMBER,
     WORD,
+    PHRASE,
 
     PROVIDERS_COUNT
 };
