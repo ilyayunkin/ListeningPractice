@@ -117,7 +117,7 @@ class TimeProvider : public AbstractListeningProvider
     std::default_random_engine randomDevice;
     QLocale locale = QLocale{QLocale::English, QLocale::UnitedStates};
     QTime t;
-    QString format = "H:mm a";
+    QString format = "h:mm a";
 public:
     TimeProvider()
     {
