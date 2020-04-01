@@ -10,7 +10,7 @@
 #include <QGridLayout>
 
 #include <QDebug>
-#include <QIntValidator>
+#include <QRegularExpressionValidator>
 #include <QSettings>
 
 MainWindow::MainWindow(ProviderFactory &provider, QWidget *parent)
@@ -55,7 +55,9 @@ MainWindow::MainWindow(ProviderFactory &provider, QWidget *parent)
             {
                 answerEdit = new QLineEdit;
                 layout->addWidget(answerEdit);
-                //                answerEdit->setValidator(new QIntValidator);
+                QRegularExpression rx("([a-z]|[A-Z]|[0-9]|\\:|\\-|\\'|\\s)+");
+                QValidator *validator = new QRegularExpressionValidator(rx, this);
+                answerEdit->setValidator(validator);
                 connect(answerEdit, &QLineEdit::returnPressed, this, &MainWindow::answer);
             }
             {
