@@ -18,9 +18,9 @@ enum ProviderType
 class AbstractListeningProvider
 {
 public:
-    virtual QString get() = 0;
-    virtual QString check(const QString &input, bool &ok) = 0;
-    virtual QString formatHint() = 0;
+    virtual QString get() const = 0;
+    virtual QString check(const QString &input, bool &ok) const = 0;
+    virtual QString formatHint() const = 0;
     virtual ~AbstractListeningProvider(){};
 
     AbstractListeningProvider() = default;

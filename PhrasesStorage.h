@@ -18,12 +18,12 @@ class PhrasesStorage : public QObject
     bool loadWordsFromFile();
     void requestWordsFromTheInternet(QUrl imageUrl);
 public:
-    explicit PhrasesStorage(QUrl imageUrl, QObject *parent = 0);
+    explicit PhrasesStorage(const QUrl imageUrl, QObject *parent = 0);
     virtual ~PhrasesStorage();
     QByteArray downloadedData() const;
-    bool empty() { return words.isEmpty();}
-    long size() { return words.size();}
-    QString getWord(long index);
+    bool empty() const { return words.isEmpty();}
+    long size() const { return words.size();}
+    QString getWord(long index) const;
 signals:
     void downloaded();
 

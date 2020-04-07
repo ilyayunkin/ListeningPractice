@@ -9,163 +9,150 @@
 #include <limits>
 #include <random>
 
+namespace
+{
+static const QLocale locale = QLocale{QLocale::English, QLocale::UnitedStates};
+static std::default_random_engine randomDevice;
+
+static int rangedRandom(const int minimum, const int maximum)
+{
+    int rNum = randomDevice() % (maximum - minimum) + minimum;
+    return rNum;
+}
+
 class NumberProvider : public AbstractListeningProvider
 {
-    std::default_random_engine randomDevice;
-    int num;
-    int range;
+    const int range;
+    const int num;
 public:
-    explicit NumberProvider(int range) : range(range)
+    explicit NumberProvider(int range) :
+        range(range),
+        num(randomDevice() % (range + 1))
     {
-        randomDevice.seed(time(0));
-        num = randomDevice() % (range + 1);
     }
-    QString get() override
+    QString get() const override
     {
         return QString::number(num);
     }
-    QString check(const QString &input, bool &ok) override
+    QString check(const QString &input, bool &ok) const override
     {
         ok = input.toInt() == num;
         return QString::number(num);
     }
-    virtual QString formatHint() override
+    virtual QString formatHint() const override
     {
         return QString{"12345678910987654321"}.left(QString::number(range).length());
     }
 };
 class PhoneNumberProvider : public AbstractListeningProvider
 {
-    std::default_random_engine randomDevice;
-    QString num;
+    const QString num;
 public:
-    explicit PhoneNumberProvider()
+    explicit PhoneNumberProvider() :
+        num(QString{"%1-%2-%3-%4"}.arg(rangedRandom(0, 999), 3, 10, QLatin1Char('0'))
+            .arg(rangedRandom(0, 999), 3, 10, QLatin1Char('0'))
+            .arg(rangedRandom(0, 99), 2, 10, QLatin1Char('0'))
+            .arg(rangedRandom(0, 99), 2, 10, QLatin1Char('0')))
     {
-        randomDevice.seed(time(0));
-        num = QString{"%1-%2-%3-%4"}.arg(rangedRandom(0, 999), 3, 10, QLatin1Char('0'))
-                .arg(rangedRandom(0, 999), 3, 10, QLatin1Char('0'))
-                .arg(rangedRandom(0, 99), 2, 10, QLatin1Char('0'))
-                .arg(rangedRandom(0, 99), 2, 10, QLatin1Char('0'));
     }
-    QString get() override
+    QString get() const override
     {
         qDebug() << __LINE__ << num;
         return num;
     }
-    QString check(const QString &input, bool &ok) override
+    QString check(const QString &input, bool &ok) const override
     {
         ok = input == num;
         return num;
     }
-    int rangedRandom(int minimum, int maximum)
-    {
-        int rNum = randomDevice() % (maximum - minimum) + minimum;
-        return rNum;
-    }
-    virtual QString formatHint() override
+    virtual QString formatHint() const override
     {
         return "123-456-78-90";
     }
 };
 class DateProvider : public AbstractListeningProvider
 {
-    std::default_random_engine randomDevice;
-    QLocale locale = QLocale{QLocale::English, QLocale::UnitedStates};
-    QDate date;
-    QString format = "MMMM d yyyy";
+    const QDate date;
+    static const QString format;
 public:
-    DateProvider()
+    DateProvider() :
+        date(QDate(rangedRandom(1900, 2050),
+                   rangedRandom(1, 12),
+                   rangedRandom(1, 31)))
     {
-        randomDevice.seed(time(0));
-        date = QDate(rangedRandom(1900, 2050),
-                     rangedRandom(1, 12),
-                     rangedRandom(1, 31));
     }
-    QString get() override
+    QString get() const override
     {
         return toStr(date);
     }
-    QString check(const QString &input, bool &ok) override
+    QString check(const QString &input, bool &ok) const override
     {
         QDate inputDate = fromStr(input);
         ok = inputDate == date;
         qDebug() << input << inputDate << toStr(inputDate) << date  << toStr(date);
         return toStr(date);
     }
-    int rangedRandom(int minimum, int maximum)
-    {
-        int rNum = randomDevice() % (maximum - minimum) + minimum;
-        return rNum;
-    }
-    QString toStr(const QDate &date)
+    static QString toStr(const QDate &date)
     {
         QString dateString = locale.toString(date, format);
         qDebug() << __LINE__ << dateString;
         return dateString;
     }
-    QDate fromStr(const QString &input)
+    static  QDate fromStr(const QString &input)
     {
         return locale.toDate(input, format);
     }
-    virtual QString formatHint() override
+    virtual QString formatHint() const override
     {
         return "January 56 1976";
     }
 };
+const QString DateProvider::format = "MMMM d yyyy";
+
 class TimeProvider : public AbstractListeningProvider
 {
-    std::default_random_engine randomDevice;
-    QLocale locale = QLocale{QLocale::English, QLocale::UnitedStates};
-    QTime t;
-    QString format = "h:mm a";
+    const QTime t;
+    static const QString format;
 public:
-    TimeProvider()
+    TimeProvider() :
+        t(QTime(rangedRandom(0, 23),
+                rangedRandom(0, 59)))
     {
-        randomDevice.seed(time(0));
-        t = QTime(rangedRandom(0, 23),
-                     rangedRandom(0, 59));
     }
-    QString get() override
+    QString get() const override
     {
         return toStr(t);
     }
-    QString check(const QString &input, bool &ok) override
+    QString check(const QString &input, bool &ok) const override
     {
         QTime inputTime = fromStr(input);
         ok = inputTime == t;
         qDebug() << input << inputTime << toStr(inputTime) << t  << toStr(t);
         return toStr(t);
     }
-    int rangedRandom(int minimum, int maximum)
-    {
-        int rNum = randomDevice() % (maximum - minimum) + minimum;
-        return rNum;
-    }
-    QString toStr(const QTime &time)
+    static QString toStr(const QTime &time)
     {
         QString timeString = locale.toString(time, format);
         qDebug() << __LINE__ << timeString;
         return timeString;
     }
-    QTime fromStr(const QString &input)
+    static QTime fromStr(const QString &input)
     {
         return locale.toTime(input, format);
     }
-    virtual QString formatHint() override
+    virtual QString formatHint() const override
     {
         return "01:45 pm";
     }
 };
+const QString TimeProvider::format = "h:mm a";
 
 class WordProvider : public AbstractListeningProvider
 {
-    std::default_random_engine randomDevice;
     QString w;
-    QLocale locale = QLocale{QLocale::English, QLocale::UnitedStates};
 public:
-    WordProvider(WordsStorage &s)
+    WordProvider(const WordsStorage &s)
     {
-        randomDevice.seed(time(0));
         if(s.empty())
         {
             w = "cat";
@@ -176,16 +163,16 @@ public:
             w = s.getWord(i);
         }
     }
-    QString get() override
+    QString get() const override
     {
         return w;
     }
-    QString check(const QString &input, bool &ok) override
+    QString check(const QString &input, bool &ok) const override
     {
         ok = input.toLower() == w.toLower();
         return w;
     }
-    virtual QString formatHint() override
+    virtual QString formatHint() const override
     {
         return "cat";
     }
@@ -193,13 +180,10 @@ public:
 
 class PhraseProvider : public AbstractListeningProvider
 {
-    std::default_random_engine randomDevice;
     QString w;
-    QLocale locale = QLocale{QLocale::English, QLocale::UnitedStates};
 public:
-    PhraseProvider(PhrasesStorage &s)
+    PhraseProvider(const PhrasesStorage &s)
     {
-        randomDevice.seed(time(0));
         if(s.empty())
         {
             w = "paper tiger";
@@ -210,11 +194,11 @@ public:
             w = s.getWord(i);
         }
     }
-    QString get() override
+    QString get() const override
     {
         return w;
     }
-    QString check(const QString &input, bool &ok) override
+    QString check(const QString &input, bool &ok) const override
     {
         ok = input.toLower() == w.toLower();
         if(!ok){
@@ -223,13 +207,15 @@ public:
         }
         return w;
     }
-    virtual QString formatHint() override
+    virtual QString formatHint() const override
     {
         return "cat";
     }
 };
+}
 
-QSharedPointer<AbstractListeningProvider> ProviderFactory::getProvider(ProviderType providerType, int range)
+QSharedPointer<AbstractListeningProvider> ProviderFactory::getProvider(
+        const ProviderType providerType, const int range) const
 {
     switch(providerType)
     {
@@ -249,7 +235,10 @@ QSharedPointer<AbstractListeningProvider> ProviderFactory::getProvider(ProviderT
     }
 }
 
-ProviderFactory::ProviderFactory(WordsStorage &wordsStorage, PhrasesStorage &phrasesStorage, QObject *parent) :
+ProviderFactory::ProviderFactory(const WordsStorage &wordsStorage,
+                                 const PhrasesStorage &phrasesStorage,
+                                 QObject *parent) :
     QObject(parent), wordsStorage(wordsStorage), phrasesStorage(phrasesStorage)
 {
+    randomDevice.seed(time(0));
 }

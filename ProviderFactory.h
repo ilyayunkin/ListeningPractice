@@ -10,13 +10,14 @@
 class ProviderFactory : public QObject
 {
     Q_OBJECT
-    WordsStorage &wordsStorage;
-    PhrasesStorage &phrasesStorage;
+    const WordsStorage &wordsStorage;
+    const PhrasesStorage &phrasesStorage;
 public:
-    explicit ProviderFactory (WordsStorage &wordsStorage,
-                              PhrasesStorage &phrasesStorage,
+    explicit ProviderFactory (const WordsStorage &wordsStorage,
+                              const PhrasesStorage &phrasesStorage,
                               QObject *parent = nullptr);
-    QSharedPointer<AbstractListeningProvider> getProvider(ProviderType providerType, int range);
+    QSharedPointer<AbstractListeningProvider> getProvider(
+            const ProviderType providerType, const int range) const;
 
 signals:
 

@@ -9,7 +9,7 @@
 
 #include <algorithm>
 
-WordsStorage::WordsStorage(QUrl imageUrl, QObject *parent) :
+WordsStorage::WordsStorage(const QUrl imageUrl, QObject *parent) :
     QObject(parent)
 {
     if(!loadWordsFromFile())
@@ -113,7 +113,7 @@ void WordsStorage::requestWordsFromTheInternet(QUrl imageUrl)
             this, SLOT (fileDownloaded(QNetworkReply*)));
 }
 
-QString WordsStorage::getWord(long index)
+QString WordsStorage::getWord(long index) const
 {
     assert(!empty());
     assert(index < size());
