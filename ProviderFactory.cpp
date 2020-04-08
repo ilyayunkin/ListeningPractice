@@ -149,19 +149,11 @@ const QString TimeProvider::format = "h:mm a";
 
 class WordProvider : public AbstractListeningProvider
 {
-    QString w;
+    const QString w;
 public:
-    WordProvider(const WordsStorage &s)
+    WordProvider(const WordsStorage &s) :
+        w(s.empty() ? QString("cat") : s.getWord(randomDevice() % s.size()))
     {
-        if(s.empty())
-        {
-            w = "cat";
-        }else
-        {
-            long count = s.size();
-            long i = randomDevice() % count;
-            w = s.getWord(i);
-        }
     }
     QString get() const override
     {
@@ -180,19 +172,11 @@ public:
 
 class PhraseProvider : public AbstractListeningProvider
 {
-    QString w;
+    const QString w;
 public:
-    PhraseProvider(const PhrasesStorage &s)
+    PhraseProvider(const PhrasesStorage &s) :
+        w(s.empty() ? QString("paper tiger") : s.getWord(randomDevice() % s.size()))
     {
-        if(s.empty())
-        {
-            w = "paper tiger";
-        }else
-        {
-            long count = s.size();
-            long i = randomDevice() % count;
-            w = s.getWord(i);
-        }
     }
     QString get() const override
     {
