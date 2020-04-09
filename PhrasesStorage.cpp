@@ -3,8 +3,6 @@
 
 #include <QFile>
 #include <QTextStream>
-#include <QTextDocument>
-#include <QTextDocumentFragment>
 #include <QDateTime>
 
 #include <algorithm>
@@ -43,20 +41,44 @@ void PhrasesStorage::fileDownloaded(QNetworkReply *r)
     QDateTime t1 = QDateTime::currentDateTime();
 
     {
-        QString pageText = QTextDocumentFragment::fromHtml(m_DownloadedData).toPlainText();
-        QStringList rowsList = pageText.split("\n");
+        constexpr char divBegin[] = "<div class=\"content\">";
+        constexpr char divEnd[] = "</div>";
+        constexpr char br[] = "<br />";
+
+        const int fieldBegin = m_DownloadedData.indexOf(divBegin);
+        if(fieldBegin == -1)
+            return;
+        const int fieldEnd = m_DownloadedData.indexOf(divEnd, fieldBegin);
+        if(fieldEnd == -1)
+            return;
+
+        QString paragraph = m_DownloadedData.mid(fieldBegin, fieldEnd - fieldBegin);
+        paragraph.replace(br, "");
+        paragraph.replace("\t", "");
+
+        QStringList rowsList = paragraph.split("\n");
         for(const auto &row : rowsList)
         {
-            if(!row.isEmpty() &&
-                    std::all_of(row.begin(), row.end(),
-                                [](QChar c){return isalpha(c.toLatin1()) || c.toLatin1() == ' ';}))
+            constexpr char aBegin[] = "<a";
+            constexpr char aEnd[] = "</a";
+            const int aaBegin = row.indexOf(aBegin);
+            const int textBegin = row.indexOf(">", aaBegin) + 1;
+            const int aaEnd = row.indexOf(aEnd);
+            if((aaEnd != -1) && (aaBegin != -1) && (textBegin != -1))
             {
-                QStringList wordsList = row.split(' ');
-                wordsList.erase(std::remove_if(wordsList.begin(),
-                                               wordsList.end(),
-                                               [](const QString &s){return s.isEmpty();}),
-                                wordsList.end());
-                words+= wordsList.join(' ').toLower();
+                QString phrase = row.mid(textBegin, aaEnd - textBegin);
+
+                if(!phrase.isEmpty() &&
+                        std::all_of(phrase.begin(), phrase.end(),
+                                    [](QChar c){return isalpha(c.toLatin1()) || c.toLatin1() == ' ';}))
+                {
+                    QStringList wordsList = phrase.split(' ');
+                    wordsList.erase(std::remove_if(wordsList.begin(),
+                                                   wordsList.end(),
+                                                   [](const QString &s){return s.isEmpty();}),
+                                    wordsList.end());
+                    words+= wordsList.join(' ').toLower();
+                }
             }
         }
     }
@@ -76,7 +98,8 @@ void PhrasesStorage::fileDownloaded(QNetworkReply *r)
         }
     }
     QDateTime t4 = QDateTime::currentDateTime();
-    qDebug() << "Timings: " << begin.secsTo(t1)
+    qDebug() << __PRETTY_FUNCTION__
+             << "Timings: " << begin.secsTo(t1)
              << t1.secsTo(t2)
              << t2.secsTo(t3)
              << t3.secsTo(t4);

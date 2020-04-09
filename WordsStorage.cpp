@@ -95,7 +95,8 @@ void WordsStorage::fileDownloaded(QNetworkReply *r)
         }
     }
     QDateTime t4 = QDateTime::currentDateTime();
-    qDebug() << "Timings: " << begin.secsTo(t1)
+    qDebug() << __PRETTY_FUNCTION__
+             << "Timings: " << begin.secsTo(t1)
              << t1.secsTo(t2)
              << t2.secsTo(t3)
              << t3.secsTo(t4);
