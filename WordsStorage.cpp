@@ -3,8 +3,6 @@
 
 #include <QFile>
 #include <QTextStream>
-#include <QTextDocument>
-#include <QTextDocumentFragment>
 #include <QDateTime>
 
 #include <algorithm>
@@ -43,8 +41,34 @@ void WordsStorage::fileDownloaded(QNetworkReply *r)
     QDateTime t1 = QDateTime::currentDateTime();
 
     {
-        QString pageText = QTextDocumentFragment::fromHtml(m_DownloadedData).toPlainText();
-        QStringList rowsList = pageText.split("\n");
+        constexpr char divBegin[] = "<div class=\"field-item even\"";
+        constexpr char divEnd[] = "</div>";
+        constexpr char pBegin[] = "<p>";
+        constexpr char pEnd[] = "</p>";
+        constexpr char br[] = "<br />";
+
+        const int fieldBegin = m_DownloadedData.indexOf(divBegin);
+        if(fieldBegin == -1)
+            return;
+        const int fieldEnd = m_DownloadedData.indexOf(divEnd, fieldBegin);
+        if(fieldEnd == -1)
+            return;
+
+        constexpr int paragraphNumber = 2;
+        int paragraphBegin = fieldBegin;
+        for(int i = 0; i <paragraphNumber; ++i)
+        {
+            paragraphBegin = m_DownloadedData.indexOf(pBegin, paragraphBegin + 1);
+            if(paragraphBegin == -1)
+                return;
+        }
+
+        const int paragraphEnd = m_DownloadedData.indexOf(pEnd, paragraphBegin);
+        QString paragraph = m_DownloadedData.mid(paragraphBegin, paragraphEnd - paragraphBegin);
+        paragraph.replace(br, "");
+        paragraph.replace("\t", "");
+
+        QStringList rowsList = paragraph.split("\n");
         for(const auto &row : rowsList)
         {
             if(!row.isEmpty() &&
