@@ -27,10 +27,8 @@ int main(int argc, char *argv[])
              << QSslSocket::sslLibraryBuildVersionString()
              << QSslSocket::sslLibraryVersionString();
 
-    QUrl wordsUrl("https://www.ef.com/wwen/english-resources/english-vocabulary/top-3000-words");
-    WordsStorage wStorage(wordsUrl);
-    QUrl phrasesUrl("https://www.phrases.org.uk/meanings/phrases-and-sayings-list.html");
-    PhrasesStorage pStorage(phrasesUrl);
+    WordsStorage wStorage;
+    PhrasesStorage pStorage;
 
     ProviderFactory factory(wStorage, pStorage);
 

@@ -7,12 +7,12 @@
 
 #include <algorithm>
 
-PhrasesStorage::PhrasesStorage(const QUrl imageUrl, QObject *parent) :
+PhrasesStorage::PhrasesStorage(QObject *parent) :
     QObject(parent)
 {
     if(!loadWordsFromFile())
     {
-        requestWordsFromTheInternet(imageUrl);
+        requestWordsFromTheInternet(QUrl("https://www.phrases.org.uk/meanings/phrases-and-sayings-list.html"));
     }
 }
 

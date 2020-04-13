@@ -6,7 +6,7 @@
 #include <QLineEdit>
 #include <QLabel>
 #include <QCheckBox>
-#include <QSharedPointer>
+#include <QSlider>
 
 #include <array>
 
@@ -23,19 +23,6 @@ public:
     ~MainWindow();
 
 private:
-    const QString rateKey = "rate";
-    const QString rangeKey = "range";
-    const QString onKey = "on";
-    std::array<QString, PROVIDERS_COUNT> providerTitles =
-    {
-        tr("Number"),
-        tr("Date"),
-        tr("Time"),
-        tr("Phone number"),
-        tr("Word"),
-        tr("Phrase"),
-    };
-
     std::array<QCheckBox *, PROVIDERS_COUNT> providerCheckBoxes;
     std::array<QLabel *, PROVIDERS_COUNT> labels;
     std::array<int, PROVIDERS_COUNT> rightAnswersCounter = {0};
@@ -43,9 +30,9 @@ private:
     QLineEdit *answerEdit;
     QLabel *hintLabel;
     QLabel *statusLabel;
+    QCheckBox *repeatCheckBox;
+    QSlider * repeatProbabilitySlider;
     QTextToSpeech speaker;
-
-    QSharedPointer<AbstractListeningProvider> numberProvider;
 
     int num;
     int range;
@@ -57,13 +44,13 @@ private:
     void speak();
     void repeat();
     void setRate(int rate);
-    void pronounce();
+    void pronounce(QString word);
     void checked();
 
     ProviderType providerType = NUMBER;
 
 public slots:
-    void setRange(int range);
     void loadImage();
+    void setRange(int range);
 };
 #endif // MAINWINDOW_H

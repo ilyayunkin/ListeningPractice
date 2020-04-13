@@ -1,7 +1,6 @@
 #include "mainwindow.h"
 
 #include <QPushButton>
-#include <QSlider>
 #include <QSpinBox>
 #include <QMessageBox>
 
@@ -12,6 +11,25 @@
 #include <QDebug>
 #include <QRegularExpressionValidator>
 #include <QSettings>
+
+namespace
+{
+const QString rateKey = "rate";
+const QString rangeKey = "range";
+const QString onKey = "on";
+const QString repeatKey = "repeat";
+const QString probabilityKey = "probability";
+
+const std::array<QString, PROVIDERS_COUNT> providerTitles =
+{
+    QObject::tr("Number"),
+    QObject::tr("Date"),
+    QObject::tr("Time"),
+    QObject::tr("Phone number"),
+    QObject::tr("Word"),
+    QObject::tr("Phrase"),
+};
+}
 
 MainWindow::MainWindow(ProviderFactory &provider, QWidget *parent)
     : QMainWindow(parent),
@@ -99,6 +117,25 @@ MainWindow::MainWindow(ProviderFactory &provider, QWidget *parent)
             }
         }
         {
+            QHBoxLayout *layout = new QHBoxLayout;
+            mainLayout->addLayout(layout);
+            repeatCheckBox = new QCheckBox(tr("Repeat failed"));
+            repeatCheckBox->setChecked(settings.value(repeatKey, true).toBool());
+
+            connect(repeatCheckBox, &QCheckBox::toggled, this, &MainWindow::checked);
+            layout->addWidget(repeatCheckBox);
+            layout->addWidget(new QLabel{tr("Probability")});
+            {
+                repeatProbabilitySlider = new QSlider{Qt::Horizontal};
+                repeatProbabilitySlider->setMinimum(1);
+                repeatProbabilitySlider->setMaximum(100);
+                repeatProbabilitySlider->setValue(rate);
+                repeatProbabilitySlider->setValue(settings.value(probabilityKey, 30).toInt());
+                layout->addWidget(repeatProbabilitySlider);
+                connect(repeatProbabilitySlider, &QSlider::valueChanged, this, &MainWindow::checked);
+            }
+        }
+        {
             statusLabel = new QLabel;
             mainLayout->addWidget(statusLabel);
         }
@@ -117,28 +154,31 @@ void MainWindow::speak()
 {
     if(on)
     {
-        numberProvider = providerFactory.getProvider(providerType, range);
-        hintLabel->setText(QString{"Format: %1"}.arg(numberProvider->formatHint()));
-        pronounce();
+        QString word = providerFactory.get(providerType,
+                                           range,
+                                           repeatCheckBox->isChecked(),
+                                           repeatProbabilitySlider->value());
+        hintLabel->setText(QString{"Format: %1"}.arg(providerFactory.formatHint()));
+        pronounce(word);
     }
 }
 
 void MainWindow::repeat()
 {
-    pronounce();
+    pronounce(providerFactory.repeat());
     answerEdit->setFocus();
 }
 
-void MainWindow::pronounce()
+void MainWindow::pronounce(QString word)
 {
-    speaker.say(numberProvider->get());
+    speaker.say(word);
 }
 
 void MainWindow::answer()
 {
     bool ok;
     {
-        QString rightAnswer = numberProvider->check(answerEdit->text(), ok);
+        QString rightAnswer = providerFactory.check(answerEdit->text(), ok);
         ++(answerCounter[providerType]);
         if(ok)
         {
@@ -209,6 +249,8 @@ void MainWindow::checked()
 
     QSettings settings;
     settings.setValue(onKey, onList);
+    settings.setValue(repeatKey, repeatCheckBox->isChecked());
+    settings.setValue(probabilityKey, repeatProbabilitySlider->value());
 }
 
 void MainWindow::loadImage()

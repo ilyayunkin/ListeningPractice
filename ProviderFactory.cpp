@@ -4,6 +4,8 @@
 
 #include <QDebug>
 #include <QSharedPointer>
+#include <QFile>
+#include <QTextStream>
 
 #include <time.h>
 #include <limits>
@@ -26,8 +28,15 @@ class NumberProvider : public AbstractListeningProvider
     const int num;
 public:
     explicit NumberProvider(int range) :
+        AbstractListeningProvider(NUMBER),
         range(range),
         num(randomDevice() % (range + 1))
+    {
+    }
+    explicit NumberProvider(const QString &str) :
+        AbstractListeningProvider(NUMBER),
+        range(0),
+        num(str.toInt())
     {
     }
     QString get() const override
@@ -49,10 +58,16 @@ class PhoneNumberProvider : public AbstractListeningProvider
     const QString num;
 public:
     explicit PhoneNumberProvider() :
+        AbstractListeningProvider(PHONE_NUMBER),
         num(QString{"%1-%2-%3-%4"}.arg(rangedRandom(0, 999), 3, 10, QLatin1Char('0'))
             .arg(rangedRandom(0, 999), 3, 10, QLatin1Char('0'))
             .arg(rangedRandom(0, 99), 2, 10, QLatin1Char('0'))
             .arg(rangedRandom(0, 99), 2, 10, QLatin1Char('0')))
+    {
+    }
+    explicit PhoneNumberProvider(const QString &str) :
+        AbstractListeningProvider(PHONE_NUMBER),
+        num(str)
     {
     }
     QString get() const override
@@ -76,9 +91,17 @@ class DateProvider : public AbstractListeningProvider
     static const QString format;
 public:
     DateProvider() :
+        AbstractListeningProvider(DATE),
         date(QDate(rangedRandom(1900, 2050),
                    rangedRandom(1, 12),
                    rangedRandom(1, 31)))
+    {
+    }
+    DateProvider(const QString &str) :
+        AbstractListeningProvider(DATE),
+        date(fromStr(str).isValid() ? fromStr(str) : QDate(rangedRandom(1900, 2050),
+                                                           rangedRandom(1, 12),
+                                                           rangedRandom(1, 31)))
     {
     }
     QString get() const override
@@ -115,8 +138,15 @@ class TimeProvider : public AbstractListeningProvider
     static const QString format;
 public:
     TimeProvider() :
+        AbstractListeningProvider(TIME),
         t(QTime(rangedRandom(0, 23),
                 rangedRandom(0, 59)))
+    {
+    }
+    TimeProvider(const QString &str) :
+        AbstractListeningProvider(TIME),
+        t(fromStr(str).isValid() ? fromStr(str) : QTime(rangedRandom(0, 23),
+                                                        rangedRandom(0, 59)))
     {
     }
     QString get() const override
@@ -152,7 +182,13 @@ class WordProvider : public AbstractListeningProvider
     const QString w;
 public:
     WordProvider(const WordsStorage &s) :
+        AbstractListeningProvider(WORD),
         w(s.empty() ? QString("cat") : s.getWord(randomDevice() % s.size()))
+    {
+    }
+    WordProvider(const QString &str) :
+        AbstractListeningProvider(WORD),
+        w(str)
     {
     }
     QString get() const override
@@ -175,7 +211,13 @@ class PhraseProvider : public AbstractListeningProvider
     const QString w;
 public:
     PhraseProvider(const PhrasesStorage &s) :
+        AbstractListeningProvider(PHRASE),
         w(s.empty() ? QString("paper tiger") : s.getWord(randomDevice() % s.size()))
+    {
+    }
+    PhraseProvider(const QString &str) :
+        AbstractListeningProvider(PHRASE),
+        w(str)
     {
     }
     QString get() const override
@@ -219,10 +261,111 @@ QSharedPointer<AbstractListeningProvider> ProviderFactory::getProvider(
     }
 }
 
+QSharedPointer<AbstractListeningProvider> ProviderFactory::getProvider(
+        const ProviderType providerType, const QString &str) const
+{
+    switch(providerType)
+    {
+    default:
+    case NUMBER: return QSharedPointer<AbstractListeningProvider>(new NumberProvider{str});
+        break;
+    case DATE: return QSharedPointer<AbstractListeningProvider>(new DateProvider{str});
+        break;
+    case TIME: return QSharedPointer<AbstractListeningProvider>(new TimeProvider{str});
+        break;
+    case PHONE_NUMBER: return QSharedPointer<AbstractListeningProvider>(new PhoneNumberProvider{str});
+        break;
+    case WORD: return QSharedPointer<AbstractListeningProvider>(new WordProvider{str});
+        break;
+    case PHRASE: return QSharedPointer<AbstractListeningProvider>(new PhraseProvider{str});
+        break;
+    }
+}
+
 ProviderFactory::ProviderFactory(const WordsStorage &wordsStorage,
                                  const PhrasesStorage &phrasesStorage,
                                  QObject *parent) :
     QObject(parent), wordsStorage(wordsStorage), phrasesStorage(phrasesStorage)
 {
     randomDevice.seed(time(0));
+    for(int i = 0; i < PROVIDERS_COUNT; ++i)
+    {
+        QFile f(QString::number(i));
+        if(f.open(QIODevice::ReadOnly))
+        {
+            QTextStream stream(&f);
+            QString s;
+            while(!(s = stream.readLine()).isNull())
+            {
+                failed[i].push_back(s);
+            }
+        }
+    }
+
+}
+
+ProviderFactory::~ProviderFactory()
+{
+    for(int i = 0; i < PROVIDERS_COUNT; ++i)
+    {
+        QFile f(QString::number(i));
+        if(f.open(QIODevice::WriteOnly))
+        {
+            QTextStream stream(&f);
+            for(const auto &s : failed[i])
+            {
+                stream << s << "\r\n";
+            }
+        }else
+        {
+            assert(f.isOpen());
+        }
+    }
+}
+
+QString ProviderFactory::get(const ProviderType providerType, int range, bool repeatFails, int probability)
+{
+    this->repeatFails = repeatFails;
+    int randomN = (rangedRandom(0, 100));
+    qDebug() << __PRETTY_FUNCTION__
+             << providerType
+             << "repeat fails:" << repeatFails
+             << randomN << '/' << probability
+             << "phrases to repeat:" << failed[providerType].size();
+    if(repeatFails && (randomN < probability) && !failed[providerType].isEmpty())
+    {
+        QString word = failed[providerType].first();
+        failed[providerType].pop_front();
+        qDebug() << __PRETTY_FUNCTION__ << "repeat:" << word;
+        numberProvider = getProvider(providerType, word);
+    }else
+    {
+        numberProvider = getProvider(providerType, range);
+    }
+    QString ret = numberProvider->get();
+    return ret;
+}
+QString ProviderFactory::repeat()
+{
+    assert(!numberProvider.isNull());
+    QString ret = numberProvider->get();
+    return ret;
+}
+QString ProviderFactory::check(const QString &input, bool &ok)
+{
+    assert(!numberProvider.isNull());
+    QString rightAnswer = numberProvider->check(input, ok);
+    if(repeatFails && !ok)
+    {
+        ProviderType type = numberProvider->getType();
+        failed[type].push_back(rightAnswer);
+        qDebug() << __PRETTY_FUNCTION__ << "to repeats:" << rightAnswer;
+    }
+    return rightAnswer;
+}
+QString ProviderFactory::formatHint()
+{
+    assert(!numberProvider.isNull());
+    QString ret = numberProvider->formatHint();
+    return ret;
 }
