@@ -34,12 +34,13 @@ const std::array<QString, PROVIDERS_COUNT> providerTitles =
 MainWindow::MainWindow(ProviderFactory &provider, QWidget *parent)
     : QMainWindow(parent),
       providerFactory(provider),
-      num(0)
+      num(0),
+      on(false)
 {
     QSettings settings;
     int rate = settings.value(rateKey, 0).toInt();
     range = settings.value(rangeKey, 999).toInt();
-    QString on = settings.value(onKey, QString()).toString();
+    QString turnedOnProviders = settings.value(onKey, QString()).toString();
 
     setCentralWidget(new QWidget);
     {
@@ -51,9 +52,15 @@ MainWindow::MainWindow(ProviderFactory &provider, QWidget *parent)
             {
                 {
                     QCheckBox *cb = new QCheckBox(providerTitles[i]);
-                    if(on.isEmpty() || on.contains(providerTitles[i]))
+                    if(turnedOnProviders.isEmpty() ||
+                            turnedOnProviders.contains(providerTitles[i]))
                     {
                         cb->setChecked(true);
+                        if(!on)
+                        {
+                            on = true;
+                            providerType = static_cast<ProviderType>(i);
+                        }
                     }
                     providerCheckBoxes[i] = cb;
                     connect(cb, &QCheckBox::toggled, this, &MainWindow::checked);

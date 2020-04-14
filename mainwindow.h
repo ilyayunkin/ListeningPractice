@@ -38,7 +38,7 @@ private:
     int range;
     int negative = 0;
     int positive = 0;
-    bool on = true;
+    bool on;
 
     void answer();
     void speak();
