@@ -6,6 +6,7 @@
 #include <QDateTime>
 
 #include <algorithm>
+#include <assert.h>
 
 PhrasesStorage::PhrasesStorage(QObject *parent) :
     QObject(parent)
