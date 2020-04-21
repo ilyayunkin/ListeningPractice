@@ -3,7 +3,6 @@
 #include <QApplication>
 #include <QSslSocket>
 #include <QDebug>
-#include <QSharedPointer>
 
 #include "WordsStorage.h"
 #include "PhrasesStorage.h"
