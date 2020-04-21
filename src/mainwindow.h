@@ -25,8 +25,8 @@ public:
 private:
     std::array<QCheckBox *, PROVIDERS_COUNT> providerCheckBoxes;
     std::array<QLabel *, PROVIDERS_COUNT> labels;
-    std::array<int, PROVIDERS_COUNT> rightAnswersCounter = {0};
-    std::array<int, PROVIDERS_COUNT> answerCounter = {0};
+    std::array<int, PROVIDERS_COUNT> rightAnswersCounter = {{0}};
+    std::array<int, PROVIDERS_COUNT> answerCounter = {{0}};
     QLineEdit *answerEdit;
     QLabel *hintLabel;
     QLabel *statusLabel;
