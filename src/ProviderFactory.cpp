@@ -10,6 +10,7 @@
 #include <time.h>
 #include <limits>
 #include <random>
+#include <assert.h>
 
 namespace
 {
