@@ -12,9 +12,9 @@ build_script:
   
 after_build:
   - windeployqt src/release/ListeningPractice.exe
-  - rm release/*.o
-  - rm release/*.cpp
-  - rm release/*.h
+  - rm src/release/*.o
+  - rm src/release/*.cpp
+  - rm src/release/*.h
 
 #Note: artifacts path should be from root directory
 artifacts:
