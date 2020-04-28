@@ -7,16 +7,16 @@ install:
   - set PATH=%QTDIR%\bin;C:\Qt\Tools\mingw530_32\bin;%PATH%;
   
 build_script:
-  - cd ./src
   - qmake ListeningPractice.pro
   - mingw32-make
   
 after_build:
-  - windeployqt release/ListeningPractice.exe
+  - windeployqt src/release/ListeningPractice.exe
   - rm release/*.o
   - rm release/*.cpp
+  - rm release/*.h
 
 #Note: artifacts path should be from root directory
 artifacts:
-  - path: ListeningPractice/release
+  - path: src/release
     type: zip
