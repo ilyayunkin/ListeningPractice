@@ -3,20 +3,36 @@ branches:
     - master
     
 install:
-  - set QTDIR=C:\Qt\5.10.1\mingw53_32
-  - set PATH=%QTDIR%\bin;C:\Qt\Tools\mingw530_32\bin;%PATH%;
+  - set QTDIR=C:\Qt\5.13\mingw73_32
+  - set QT_TOOLS_DIR=C:\Qt\Tools\mingw730_32\ 
+  - set PATH=%QTDIR%\bin;C:\Qt\Tools\mingw730_32\bin;%PATH%
+  - qmake -v
+  - dir C:\Qt\
+  - dir C:\Qt\5.13\
+  - dir %QTDIR%
+  - dir %QTDIR%\bin
+  - dir %QTDIR%\lib
+  - dir C:\Qt\Tools\
+  - dir C:\Qt\Tools\QtCreator
+  - dir C:\Qt\Tools\QtCreator\bin
+  - dir %QT_TOOLS_DIR%\  
+  - dir %QT_TOOLS_DIR%\bin
+  - dir %QT_TOOLS_DIR%\lib
+  - dir C:\OpenSSL-Win32\bin
+  - dir C:\OpenSSL-Win32\lib
   
 build_script:
-  - cd ./src
   - qmake ListeningPractice.pro
   - mingw32-make
   
 after_build:
-  - windeployqt release/ListeningPractice.exe
-  - rm release/*.o
-  - rm release/*.cpp
+  - windeployqt bin/ListeningPractice.exe
+  - curl https://bintray.com/vszakats/generic/download_file?file_path=openssl-1.1.1c-win32-mingw.zip -o ssl.zip -LO
+  - 7z e ssl.zip
+  - dir
+  - cp *.dll bin/
 
 #Note: artifacts path should be from root directory
 artifacts:
-  - path: ListeningPractice/release
+  - path: bin
     type: zip
