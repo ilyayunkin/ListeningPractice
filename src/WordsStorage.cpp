@@ -73,7 +73,6 @@ void WordsStorage::fileDownloaded(QNetworkReply *r)
             constexpr char divEnd[] = "</div>";
             constexpr char pBegin[] = "<p>";
             constexpr char pEnd[] = "</p>";
-            constexpr char br[] = "<br />";
 
             const int fieldBegin = m_DownloadedData.indexOf(divBegin);
             if(fieldBegin == -1)
@@ -100,16 +99,26 @@ void WordsStorage::fileDownloaded(QNetworkReply *r)
 
             const int paragraphEnd = m_DownloadedData.indexOf(pEnd, paragraphBegin);
             QString paragraph = m_DownloadedData.mid(paragraphBegin, paragraphEnd - paragraphBegin);
-            paragraph.replace(br, "");
-            paragraph.replace("\t", "");
+
+            {
+                constexpr char br1[] = "<br />";
+                constexpr char br2[] = "<br/>";
+                constexpr char br3[] = "<br>";
+                paragraph.replace(br1, "");
+                paragraph.replace(br2, "");
+                paragraph.replace(br3, "");
+                paragraph.replace("\t", "");
+            }
 
             QStringList rowsList = paragraph.split("\n");
             for(const auto &row : rowsList)
             {
+                qDebug() << __PRETTY_FUNCTION__ << row;
                 if(!row.isEmpty() &&
                         !row.contains(' ') &&
                         std::all_of(row.begin(), row.end(), [](QChar c){return isalpha(c.toLatin1());}))
                 {
+                    qDebug() << __PRETTY_FUNCTION__ << row;
                     words+= row.toLower();
                 }
             }
