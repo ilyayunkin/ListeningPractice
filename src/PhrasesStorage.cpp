@@ -28,6 +28,14 @@ PhrasesStorage::~PhrasesStorage()
 void PhrasesStorage::fileDownloaded(QNetworkReply *r)
 {
     qDebug() << __PRETTY_FUNCTION__;
+    const int statusCode = r->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    const QByteArray reason = r->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toByteArray();
+    const QUrl redirection = r->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
+    const QByteArray loadDetails = QByteArray("code: ") + QString::number(statusCode).toLatin1()
+            + "\nReason: " + reason
+            + "\nRedirect: " + redirection.toString().toLatin1();
+    qDebug() << __PRETTY_FUNCTION__ << loadDetails;
+
     m_DownloadedData = r->readAll();
     //emit a signal
     r->deleteLater();
@@ -35,6 +43,11 @@ void PhrasesStorage::fileDownloaded(QNetworkReply *r)
     try {
         if(r->error() != QNetworkReply::NoError)
             throw HttpLoadException(r->errorString().toLatin1());
+
+        if(statusCode != 200)
+        {
+            throw ResourceUnavailibleException(loadDetails);
+        }
 
         if(m_DownloadedData.isEmpty())
             throw EmptyFileException();
@@ -151,6 +164,7 @@ bool PhrasesStorage::loadWordsFromFile()
 void PhrasesStorage::requestWordsFromTheInternet(QUrl imageUrl)
 {
     QNetworkRequest request(imageUrl);
+    request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     m_WebCtrl.get(request);
     connect(&m_WebCtrl, SIGNAL (finished(QNetworkReply*)),
             this, SLOT (fileDownloaded(QNetworkReply*)));

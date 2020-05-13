@@ -11,6 +11,7 @@ public:
     {
     }
 };
+
 class EmptyFileException : public std::runtime_error
 {
 public:
@@ -19,11 +20,21 @@ public:
     {
     }
 };
+
 class ParsingFailedException : public std::runtime_error
 {
 public:
     ParsingFailedException(const char *const element) :
         std::runtime_error(QByteArray("Parsing failed: ").append(element).data())
+    {
+    }
+};
+
+class ResourceUnavailibleException : public std::runtime_error
+{
+public:
+    ResourceUnavailibleException(const char *const what) :
+        std::runtime_error(QByteArray("Loading failed: ").append(what).data())
     {
     }
 };

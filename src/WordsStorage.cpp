@@ -16,7 +16,7 @@ WordsStorage::WordsStorage(QObject *parent) :
 {
     if(!loadWordsFromFile())
     {
-        requestWordsFromTheInternet(QUrl("https://www.ef.com/wwen/english-resources/english-vocabulary/top-3000-words"));
+        requestWordsFromTheInternet(QUrl("https://www.ef.com/wwen/english-resources/english-vocabulary/top-3000-words/"));
     }
 }
 
@@ -28,16 +28,33 @@ WordsStorage::~WordsStorage()
 void WordsStorage::fileDownloaded(QNetworkReply *r)
 {
     qDebug() << __PRETTY_FUNCTION__;
+    const int statusCode = r->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    const QByteArray reason = r->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toByteArray();
+    const QUrl redirection = r->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl();
+    const QByteArray loadDetails = QByteArray("code: ") + QString::number(statusCode).toLatin1()
+            + "\nReason: " + reason
+            + "\nRedirect: " + redirection.toString().toLatin1();
+    qDebug() << __PRETTY_FUNCTION__ << loadDetails;
+
     m_DownloadedData = r->readAll();
     //emit a signal
     r->deleteLater();
 
     try {
         if(r->error() != QNetworkReply::NoError)
+        {
             throw HttpLoadException(r->errorString().toLatin1());
+        }
+
+        if(statusCode != 200)
+        {
+            throw ResourceUnavailibleException(loadDetails);
+        }
 
         if(m_DownloadedData.isEmpty())
+        {
             throw EmptyFileException();
+        }
 
         QDateTime begin = QDateTime::currentDateTime();
         {
@@ -60,11 +77,15 @@ void WordsStorage::fileDownloaded(QNetworkReply *r)
 
             const int fieldBegin = m_DownloadedData.indexOf(divBegin);
             if(fieldBegin == -1)
+            {
                 throw ParsingFailedException(divBegin);
+            }
 
             const int fieldEnd = m_DownloadedData.indexOf(divEnd, fieldBegin);
             if(fieldEnd == -1)
+            {
                 throw ParsingFailedException(divEnd);
+            }
 
             constexpr int paragraphNumber = 2;
             int paragraphBegin = fieldBegin;
@@ -72,7 +93,9 @@ void WordsStorage::fileDownloaded(QNetworkReply *r)
             {
                 paragraphBegin = m_DownloadedData.indexOf(pBegin, paragraphBegin + 1);
                 if(paragraphBegin == -1)
+                {
                     throw ParsingFailedException(pBegin);
+                }
             }
 
             const int paragraphEnd = m_DownloadedData.indexOf(pEnd, paragraphBegin);
@@ -148,6 +171,7 @@ bool WordsStorage::loadWordsFromFile()
 void WordsStorage::requestWordsFromTheInternet(QUrl imageUrl)
 {
     QNetworkRequest request(imageUrl);
+    request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     m_WebCtrl.get(request);
     connect(&m_WebCtrl, SIGNAL (finished(QNetworkReply*)),
             this, SLOT (fileDownloaded(QNetworkReply*)));
