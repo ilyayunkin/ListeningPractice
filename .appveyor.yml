@@ -30,9 +30,10 @@ after_build:
   - curl https://bintray.com/vszakats/generic/download_file?file_path=openssl-1.1.1c-win32-mingw.zip -o ssl.zip -LO
   - 7z e ssl.zip
   - dir
-  - cp *.dll bin/
+  - mv *.dll bin/
+  - mv bin ListeningPractice
 
 #Note: artifacts path should be from root directory
 artifacts:
-  - path: bin
+  - path: ListeningPractice
     type: zip
