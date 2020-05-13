@@ -4,9 +4,12 @@
 #include <QFile>
 #include <QTextStream>
 #include <QDateTime>
+#include <QMessageBox>
 
 #include <algorithm>
 #include <assert.h>
+
+#include "ExceptionClasses.h"
 
 PhrasesStorage::PhrasesStorage(QObject *parent) :
     QObject(parent)
@@ -29,82 +32,93 @@ void PhrasesStorage::fileDownloaded(QNetworkReply *r)
     //emit a signal
     r->deleteLater();
 
-    QDateTime begin = QDateTime::currentDateTime();
-    {
-        QFile f(xmlFileName);
-        f.open(QIODevice::WriteOnly);
-        if(f.isOpen())
+    try {
+        if(r->error() != QNetworkReply::NoError)
+            throw HttpLoadException(r->errorString().toLatin1());
+
+        if(m_DownloadedData.isEmpty())
+            throw EmptyFileException();
+
+        QDateTime begin = QDateTime::currentDateTime();
         {
-            QTextStream s(&f);
-            s << m_DownloadedData;
-        }
-    }
-    QDateTime t1 = QDateTime::currentDateTime();
-
-    {
-        constexpr char divBegin[] = "<div class=\"content\">";
-        constexpr char divEnd[] = "</div>";
-        constexpr char br[] = "<br />";
-
-        const int fieldBegin = m_DownloadedData.indexOf(divBegin);
-        if(fieldBegin == -1)
-            return;
-        const int fieldEnd = m_DownloadedData.indexOf(divEnd, fieldBegin);
-        if(fieldEnd == -1)
-            return;
-
-        QString paragraph = m_DownloadedData.mid(fieldBegin, fieldEnd - fieldBegin);
-        paragraph.replace(br, "");
-        paragraph.replace("\t", "");
-
-        QStringList rowsList = paragraph.split("\n");
-        for(const auto &row : rowsList)
-        {
-            constexpr char aBegin[] = "<a";
-            constexpr char aEnd[] = "</a";
-            const int aaBegin = row.indexOf(aBegin);
-            const int textBegin = row.indexOf(">", aaBegin) + 1;
-            const int aaEnd = row.indexOf(aEnd);
-            if((aaEnd != -1) && (aaBegin != -1) && (textBegin != -1))
+            QFile f(xmlFileName);
+            f.open(QIODevice::WriteOnly);
+            if(f.isOpen())
             {
-                QString phrase = row.mid(textBegin, aaEnd - textBegin);
+                QTextStream s(&f);
+                s << m_DownloadedData;
+            }
+        }
+        QDateTime t1 = QDateTime::currentDateTime();
 
-                if(!phrase.isEmpty() &&
-                        std::all_of(phrase.begin(), phrase.end(),
-                                    [](QChar c){return isalpha(c.toLatin1()) || c.toLatin1() == ' ';}))
+        {
+            constexpr char divBegin[] = "<div class=\"content\">";
+            constexpr char divEnd[] = "</div>";
+            constexpr char br[] = "<br />";
+
+            const int fieldBegin = m_DownloadedData.indexOf(divBegin);
+            if(fieldBegin == -1)
+                throw ParsingFailedException(divBegin);
+
+            const int fieldEnd = m_DownloadedData.indexOf(divEnd, fieldBegin);
+            if(fieldEnd == -1)
+                throw ParsingFailedException(divEnd);
+
+            QString paragraph = m_DownloadedData.mid(fieldBegin, fieldEnd - fieldBegin);
+            paragraph.replace(br, "");
+            paragraph.replace("\t", "");
+
+            QStringList rowsList = paragraph.split("\n");
+            for(const auto &row : rowsList)
+            {
+                constexpr char aBegin[] = "<a";
+                constexpr char aEnd[] = "</a";
+                const int aaBegin = row.indexOf(aBegin);
+                const int textBegin = row.indexOf(">", aaBegin) + 1;
+                const int aaEnd = row.indexOf(aEnd);
+                if((aaEnd != -1) && (aaBegin != -1) && (textBegin != -1))
                 {
-                    QStringList wordsList = phrase.split(' ');
-                    wordsList.erase(std::remove_if(wordsList.begin(),
-                                                   wordsList.end(),
-                                                   [](const QString &s){return s.isEmpty();}),
-                                    wordsList.end());
-                    words+= wordsList.join(' ').toLower();
+                    QString phrase = row.mid(textBegin, aaEnd - textBegin);
+
+                    if(!phrase.isEmpty() &&
+                            std::all_of(phrase.begin(), phrase.end(),
+                                        [](QChar c){return isalpha(c.toLatin1()) || c.toLatin1() == ' ';}))
+                    {
+                        QStringList wordsList = phrase.split(' ');
+                        wordsList.erase(std::remove_if(wordsList.begin(),
+                                                       wordsList.end(),
+                                                       [](const QString &s){return s.isEmpty();}),
+                                        wordsList.end());
+                        words+= wordsList.join(' ').toLower();
+                    }
                 }
             }
         }
-    }
-    QDateTime t2 = QDateTime::currentDateTime();
-    words.removeDuplicates();
-    QDateTime t3 = QDateTime::currentDateTime();
-    {
-        QFile f(phrasesFileName);
-        f.open(QIODevice::WriteOnly);
-        if(f.isOpen())
+        QDateTime t2 = QDateTime::currentDateTime();
+        words.removeDuplicates();
+        QDateTime t3 = QDateTime::currentDateTime();
         {
-            QTextStream s(&f);
-            for(auto word : words)
+            QFile f(phrasesFileName);
+            f.open(QIODevice::WriteOnly);
+            if(f.isOpen())
             {
-                s << word + "\r\n" ;
+                QTextStream s(&f);
+                for(auto word : words)
+                {
+                    s << word + "\r\n" ;
+                }
             }
         }
+        QDateTime t4 = QDateTime::currentDateTime();
+        qDebug() << __PRETTY_FUNCTION__
+                 << "Timings: " << begin.secsTo(t1)
+                 << t1.secsTo(t2)
+                 << t2.secsTo(t3)
+                 << t3.secsTo(t4);
+        emit downloaded();
+    } catch (std::runtime_error &e) {
+        QMessageBox::critical(0, "Phrases loading error", e.what());
     }
-    QDateTime t4 = QDateTime::currentDateTime();
-    qDebug() << __PRETTY_FUNCTION__
-             << "Timings: " << begin.secsTo(t1)
-             << t1.secsTo(t2)
-             << t2.secsTo(t3)
-             << t3.secsTo(t4);
-    emit downloaded();
 }
 
 QByteArray PhrasesStorage::downloadedData() const

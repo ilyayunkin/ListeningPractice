@@ -4,9 +4,12 @@
 #include <QFile>
 #include <QTextStream>
 #include <QDateTime>
+#include <QMessageBox>
 
 #include <algorithm>
 #include <assert.h>
+
+#include "ExceptionClasses.h"
 
 WordsStorage::WordsStorage(QObject *parent) :
     QObject(parent)
@@ -29,79 +32,90 @@ void WordsStorage::fileDownloaded(QNetworkReply *r)
     //emit a signal
     r->deleteLater();
 
-    QDateTime begin = QDateTime::currentDateTime();
-    {
-        QFile f(xmlFileName);
-        f.open(QIODevice::WriteOnly);
-        if(f.isOpen())
+    try {
+        if(r->error() != QNetworkReply::NoError)
+            throw HttpLoadException(r->errorString().toLatin1());
+
+        if(m_DownloadedData.isEmpty())
+            throw EmptyFileException();
+
+        QDateTime begin = QDateTime::currentDateTime();
         {
-            QTextStream s(&f);
-            s << m_DownloadedData;
-        }
-    }
-    QDateTime t1 = QDateTime::currentDateTime();
-
-    {
-        constexpr char divBegin[] = "<div class=\"field-item even\"";
-        constexpr char divEnd[] = "</div>";
-        constexpr char pBegin[] = "<p>";
-        constexpr char pEnd[] = "</p>";
-        constexpr char br[] = "<br />";
-
-        const int fieldBegin = m_DownloadedData.indexOf(divBegin);
-        if(fieldBegin == -1)
-            return;
-        const int fieldEnd = m_DownloadedData.indexOf(divEnd, fieldBegin);
-        if(fieldEnd == -1)
-            return;
-
-        constexpr int paragraphNumber = 2;
-        int paragraphBegin = fieldBegin;
-        for(int i = 0; i <paragraphNumber; ++i)
-        {
-            paragraphBegin = m_DownloadedData.indexOf(pBegin, paragraphBegin + 1);
-            if(paragraphBegin == -1)
-                return;
-        }
-
-        const int paragraphEnd = m_DownloadedData.indexOf(pEnd, paragraphBegin);
-        QString paragraph = m_DownloadedData.mid(paragraphBegin, paragraphEnd - paragraphBegin);
-        paragraph.replace(br, "");
-        paragraph.replace("\t", "");
-
-        QStringList rowsList = paragraph.split("\n");
-        for(const auto &row : rowsList)
-        {
-            if(!row.isEmpty() &&
-                    !row.contains(' ') &&
-                    std::all_of(row.begin(), row.end(), [](QChar c){return isalpha(c.toLatin1());}))
+            QFile f(xmlFileName);
+            f.open(QIODevice::WriteOnly);
+            if(f.isOpen())
             {
-                words+= row.toLower();
+                QTextStream s(&f);
+                s << m_DownloadedData;
             }
         }
-    }
-    QDateTime t2 = QDateTime::currentDateTime();
-    words.removeDuplicates();
-    QDateTime t3 = QDateTime::currentDateTime();
-    {
-        QFile f(wordsFileName);
-        f.open(QIODevice::WriteOnly);
-        if(f.isOpen())
+        QDateTime t1 = QDateTime::currentDateTime();
+
         {
-            QTextStream s(&f);
-            for(auto word : words)
+            constexpr char divBegin[] = "<div class=\"field-item even\"";
+            constexpr char divEnd[] = "</div>";
+            constexpr char pBegin[] = "<p>";
+            constexpr char pEnd[] = "</p>";
+            constexpr char br[] = "<br />";
+
+            const int fieldBegin = m_DownloadedData.indexOf(divBegin);
+            if(fieldBegin == -1)
+                throw ParsingFailedException(divBegin);
+
+            const int fieldEnd = m_DownloadedData.indexOf(divEnd, fieldBegin);
+            if(fieldEnd == -1)
+                throw ParsingFailedException(divEnd);
+
+            constexpr int paragraphNumber = 2;
+            int paragraphBegin = fieldBegin;
+            for(int i = 0; i <paragraphNumber; ++i)
             {
-                s << word + "\r\n" ;
+                paragraphBegin = m_DownloadedData.indexOf(pBegin, paragraphBegin + 1);
+                if(paragraphBegin == -1)
+                    throw ParsingFailedException(pBegin);
+            }
+
+            const int paragraphEnd = m_DownloadedData.indexOf(pEnd, paragraphBegin);
+            QString paragraph = m_DownloadedData.mid(paragraphBegin, paragraphEnd - paragraphBegin);
+            paragraph.replace(br, "");
+            paragraph.replace("\t", "");
+
+            QStringList rowsList = paragraph.split("\n");
+            for(const auto &row : rowsList)
+            {
+                if(!row.isEmpty() &&
+                        !row.contains(' ') &&
+                        std::all_of(row.begin(), row.end(), [](QChar c){return isalpha(c.toLatin1());}))
+                {
+                    words+= row.toLower();
+                }
             }
         }
+        QDateTime t2 = QDateTime::currentDateTime();
+        words.removeDuplicates();
+        QDateTime t3 = QDateTime::currentDateTime();
+        {
+            QFile f(wordsFileName);
+            f.open(QIODevice::WriteOnly);
+            if(f.isOpen())
+            {
+                QTextStream s(&f);
+                for(auto word : words)
+                {
+                    s << word + "\r\n" ;
+                }
+            }
+        }
+        QDateTime t4 = QDateTime::currentDateTime();
+        qDebug() << __PRETTY_FUNCTION__
+                 << "Timings: " << begin.secsTo(t1)
+                 << t1.secsTo(t2)
+                 << t2.secsTo(t3)
+                 << t3.secsTo(t4);
+        emit downloaded();
+    } catch (std::runtime_error &e) {
+        QMessageBox::critical(0, "Words loading error", e.what());
     }
-    QDateTime t4 = QDateTime::currentDateTime();
-    qDebug() << __PRETTY_FUNCTION__
-             << "Timings: " << begin.secsTo(t1)
-             << t1.secsTo(t2)
-             << t2.secsTo(t3)
-             << t3.secsTo(t4);
-    emit downloaded();
 }
 
 QByteArray WordsStorage::downloadedData() const

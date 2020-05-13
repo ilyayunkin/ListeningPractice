@@ -25,6 +25,7 @@ SOURCES += \
 
 HEADERS += \
     AbstractListeningProvider.h \
+    ExceptionClasses.h \
     PhrasesStorage.h \
     ProviderFactory.h \
     WordsStorage.h \
