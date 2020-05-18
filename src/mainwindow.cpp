@@ -44,31 +44,85 @@ MainWindow::MainWindow(ProviderFactory &provider, QWidget *parent)
 
     setCentralWidget(new QWidget);
     {
+        for(int i = NUMBER; i < PROVIDERS_COUNT; ++i)
+        {
+            {
+                QCheckBox *cb = new QCheckBox(providerTitles[i]);
+                if(turnedOnProviders.isEmpty() ||
+                        turnedOnProviders.contains(providerTitles[i]))
+                {
+                    cb->setChecked(true);
+                    if(!on)
+                    {
+                        on = true;
+                        providerType = static_cast<ProviderType>(i);
+                    }
+                }
+                providerCheckBoxes[i] = cb;
+                connect(cb, &QCheckBox::toggled, this, &MainWindow::checked);
+            }
+            labels[i] = new QLabel;
+        }
+    }
+    {
+        answerEdit = new QLineEdit;
+        QRegularExpression rx("([a-z]|[A-Z]|[0-9]|\\:|\\-|\\'|\\s)+");
+        QValidator *validator = new QRegularExpressionValidator(rx, this);
+        answerEdit->setValidator(validator);
+        connect(answerEdit, &QLineEdit::returnPressed, this, &MainWindow::answer);
+    }
+    QPushButton *answerButton;
+    {
+        answerButton = new QPushButton("OK");
+        connect(answerButton, &QPushButton::clicked, this, &MainWindow::answer);
+    }
+    QPushButton *repeatButton;
+    {
+        repeatButton = new QPushButton(tr("Repeat"));
+        connect(repeatButton, &QPushButton::clicked, this, &MainWindow::repeat);
+    }
+    QSlider * speechRateSlider;
+    {
+        speechRateSlider = new QSlider{Qt::Horizontal};
+        speechRateSlider->setMinimum(-100);
+        speechRateSlider->setMaximum(100);
+        speechRateSlider->setValue(rate);
+        connect(speechRateSlider, &QSlider::valueChanged, this, &MainWindow::setRate);
+    }
+    QSpinBox * spinBox;
+    {
+        spinBox = new QSpinBox;
+        spinBox->setMinimum(10);
+        spinBox->setMaximum(__INT_MAX__);
+        spinBox->setValue(range);
+        connect(spinBox, SIGNAL(valueChanged(int)), this, SLOT(setRange(int)));
+    }
+    {
+        repeatCheckBox = new QCheckBox(tr("Repeat failed"));
+        repeatCheckBox->setChecked(settings.value(repeatKey, true).toBool());
+
+        connect(repeatCheckBox, &QCheckBox::toggled, this, &MainWindow::checked);
+    }
+    {
+        repeatProbabilitySlider = new QSlider{Qt::Horizontal};
+        repeatProbabilitySlider->setMinimum(1);
+        repeatProbabilitySlider->setMaximum(100);
+        repeatProbabilitySlider->setValue(rate);
+        repeatProbabilitySlider->setValue(settings.value(probabilityKey, 30).toInt());
+        connect(repeatProbabilitySlider, &QSlider::valueChanged, this, &MainWindow::checked);
+    }
+    {
+        statusLabel = new QLabel;
+    }
+
+    {// Layouts
         QVBoxLayout *mainLayout = new QVBoxLayout{centralWidget()};
         {
             QGridLayout *layout = new QGridLayout;
             mainLayout->addLayout(layout);
             for(int i = NUMBER; i < PROVIDERS_COUNT; ++i)
             {
-                {
-                    QCheckBox *cb = new QCheckBox(providerTitles[i]);
-                    if(turnedOnProviders.isEmpty() ||
-                            turnedOnProviders.contains(providerTitles[i]))
-                    {
-                        cb->setChecked(true);
-                        if(!on)
-                        {
-                            on = true;
-                            providerType = static_cast<ProviderType>(i);
-                        }
-                    }
-                    providerCheckBoxes[i] = cb;
-                    connect(cb, &QCheckBox::toggled, this, &MainWindow::checked);
-                }
                 layout->addWidget(providerCheckBoxes[i], 0, i);
-                {
-                    labels[i] = new QLabel;
-                }
                 layout->addWidget(labels[i], 1, i);
             }
         }
@@ -77,73 +131,31 @@ MainWindow::MainWindow(ProviderFactory &provider, QWidget *parent)
             QHBoxLayout *layout = new QHBoxLayout;
             mainLayout->addLayout(layout);
             layout->addWidget(new QLabel(tr("Answer")));
-            {
-                answerEdit = new QLineEdit;
-                layout->addWidget(answerEdit);
-                QRegularExpression rx("([a-z]|[A-Z]|[0-9]|\\:|\\-|\\'|\\s)+");
-                QValidator *validator = new QRegularExpressionValidator(rx, this);
-                answerEdit->setValidator(validator);
-                connect(answerEdit, &QLineEdit::returnPressed, this, &MainWindow::answer);
-            }
-            {
-                QPushButton *answerButton = new QPushButton("OK");
-                layout->addWidget(answerButton);
-                connect(answerButton, &QPushButton::clicked, this, &MainWindow::answer);
 
-            }
-            {
-                QPushButton *repeatButton = new QPushButton(tr("Repeat"));
-                layout->addWidget(repeatButton);
-                connect(repeatButton, &QPushButton::clicked, this, &MainWindow::repeat);
-            }
+            layout->addWidget(answerEdit);
+            layout->addWidget(answerButton);
+            layout->addWidget(repeatButton);
         }
         {
             QHBoxLayout *layout = new QHBoxLayout;
             mainLayout->addLayout(layout);
             layout->addWidget(new QLabel{tr("Speech rate")});
-            {
-                QSlider * speechRateSlider = new QSlider{Qt::Horizontal};
-                speechRateSlider->setMinimum(-100);
-                speechRateSlider->setMaximum(100);
-                speechRateSlider->setValue(rate);
-                layout->addWidget(speechRateSlider);
-                connect(speechRateSlider, &QSlider::valueChanged, this, &MainWindow::setRate);
-            }
+            layout->addWidget(speechRateSlider);
         }
         {
             QHBoxLayout *layout = new QHBoxLayout;
             mainLayout->addLayout(layout);
             layout->addWidget(new QLabel{tr("Numbers range")});
-            {
-                QSpinBox * spinBox = new QSpinBox;
-                spinBox->setMinimum(10);
-                spinBox->setMaximum(__INT_MAX__);
-                spinBox->setValue(range);
-                layout->addWidget(spinBox);
-                connect(spinBox, SIGNAL(valueChanged(int)), this, SLOT(setRange(int)));
-            }
+            layout->addWidget(spinBox);
         }
         {
             QHBoxLayout *layout = new QHBoxLayout;
             mainLayout->addLayout(layout);
-            repeatCheckBox = new QCheckBox(tr("Repeat failed"));
-            repeatCheckBox->setChecked(settings.value(repeatKey, true).toBool());
-
-            connect(repeatCheckBox, &QCheckBox::toggled, this, &MainWindow::checked);
             layout->addWidget(repeatCheckBox);
             layout->addWidget(new QLabel{tr("Probability")});
-            {
-                repeatProbabilitySlider = new QSlider{Qt::Horizontal};
-                repeatProbabilitySlider->setMinimum(1);
-                repeatProbabilitySlider->setMaximum(100);
-                repeatProbabilitySlider->setValue(rate);
-                repeatProbabilitySlider->setValue(settings.value(probabilityKey, 30).toInt());
-                layout->addWidget(repeatProbabilitySlider);
-                connect(repeatProbabilitySlider, &QSlider::valueChanged, this, &MainWindow::checked);
-            }
+            layout->addWidget(repeatProbabilitySlider);
         }
         {
-            statusLabel = new QLabel;
             mainLayout->addWidget(statusLabel);
         }
     }
