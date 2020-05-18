@@ -3,6 +3,7 @@
 #include <QPushButton>
 #include <QSpinBox>
 #include <QMessageBox>
+#include <QGroupBox>
 
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -14,6 +15,7 @@
 
 namespace
 {
+const QString statusFormat = QObject::tr("Positive: %1 Negative: %2");
 const QString rateKey = "rate";
 const QString rangeKey = "range";
 const QString onKey = "on";
@@ -43,6 +45,7 @@ MainWindow::MainWindow(ProviderFactory &provider, QWidget *parent)
     QString turnedOnProviders = settings.value(onKey, QString()).toString();
 
     setCentralWidget(new QWidget);
+    hintLabel = new QLabel;
     {
         for(int i = NUMBER; i < PROVIDERS_COUNT; ++i)
         {
@@ -76,10 +79,10 @@ MainWindow::MainWindow(ProviderFactory &provider, QWidget *parent)
         answerButton = new QPushButton("OK");
         connect(answerButton, &QPushButton::clicked, this, &MainWindow::answer);
     }
-    QPushButton *repeatButton;
+    QPushButton *playButton;
     {
-        repeatButton = new QPushButton(tr("Repeat"));
-        connect(repeatButton, &QPushButton::clicked, this, &MainWindow::repeat);
+        playButton = new QPushButton(tr("Play"));
+        connect(playButton, &QPushButton::clicked, this, &MainWindow::repeat);
     }
     QSlider * speechRateSlider;
     {
@@ -116,60 +119,73 @@ MainWindow::MainWindow(ProviderFactory &provider, QWidget *parent)
     }
 
     {// Layouts
-        QVBoxLayout *mainLayout = new QVBoxLayout{centralWidget()};
+        QGridLayout *centralLayout = new QGridLayout{centralWidget()};
         {
-            QGridLayout *layout = new QGridLayout;
-            mainLayout->addLayout(layout);
+            QGroupBox *checksBox = new QGroupBox(this);
+            QGridLayout *layout = new QGridLayout(checksBox);
+            centralLayout->addWidget(checksBox, 0, 0, 2, 1);
             for(int i = NUMBER; i < PROVIDERS_COUNT; ++i)
             {
-                layout->addWidget(providerCheckBoxes[i], 0, i);
-                layout->addWidget(labels[i], 1, i);
+                layout->addWidget(providerCheckBoxes[i], i, 0);
+                layout->addWidget(labels[i], i, 1);
             }
         }
-        mainLayout->addWidget(hintLabel = new QLabel);
         {
-            QHBoxLayout *layout = new QHBoxLayout;
-            mainLayout->addLayout(layout);
-            layout->addWidget(new QLabel(tr("Answer")));
+            QGroupBox *playBox = new QGroupBox(this);
+            centralLayout->addWidget(playBox, 0, 1);
+            QVBoxLayout *playLay = new QVBoxLayout(playBox);
+            {
+                QHBoxLayout *layout = new QHBoxLayout;
+                playLay->addLayout(layout);
+                layout->addWidget(new QLabel(tr("Answer")));
 
-            layout->addWidget(answerEdit);
-            layout->addWidget(answerButton);
-            layout->addWidget(repeatButton);
+                layout->addWidget(answerEdit);
+                layout->addWidget(answerButton);
+                layout->addWidget(playButton);
+            }
+            playLay->addWidget(hintLabel);
         }
         {
-            QHBoxLayout *layout = new QHBoxLayout;
-            mainLayout->addLayout(layout);
-            layout->addWidget(new QLabel{tr("Speech rate")});
-            layout->addWidget(speechRateSlider);
+            QGroupBox *controlsBox = new QGroupBox(this);
+            QVBoxLayout *controlsLay = new QVBoxLayout(controlsBox);
+            centralLayout->addWidget(controlsBox, 1, 1);
+            {
+                QHBoxLayout *layout = new QHBoxLayout;
+                controlsLay->addLayout(layout);
+                layout->addWidget(new QLabel{tr("Speech rate")});
+                layout->addWidget(speechRateSlider);
+            }
+            {
+                QHBoxLayout *layout = new QHBoxLayout;
+                controlsLay->addLayout(layout);
+                layout->addWidget(new QLabel{tr("Numbers range")});
+                layout->addWidget(spinBox);
+            }
+            {
+                QHBoxLayout *layout = new QHBoxLayout;
+                controlsLay->addLayout(layout);
+                layout->addWidget(repeatCheckBox);
+                layout->addWidget(new QLabel{tr("Probability")});
+                layout->addWidget(repeatProbabilitySlider);
+            }
         }
         {
-            QHBoxLayout *layout = new QHBoxLayout;
-            mainLayout->addLayout(layout);
-            layout->addWidget(new QLabel{tr("Numbers range")});
-            layout->addWidget(spinBox);
-        }
-        {
-            QHBoxLayout *layout = new QHBoxLayout;
-            mainLayout->addLayout(layout);
-            layout->addWidget(repeatCheckBox);
-            layout->addWidget(new QLabel{tr("Probability")});
-            layout->addWidget(repeatProbabilitySlider);
-        }
-        {
-            mainLayout->addWidget(statusLabel);
+            centralLayout->addWidget(statusLabel, 2, 0, 1, 2);
+//            statusLabel->setAlignment(Qt::AlignCenter);
         }
     }
     {
         setRate(rate);
     }
-    speak();
+    updateQuestion();
+    updateStatus();
 }
 
 MainWindow::~MainWindow()
 {
 }
 
-void MainWindow::speak()
+void MainWindow::updateQuestion()
 {
     if(on)
     {
@@ -178,7 +194,6 @@ void MainWindow::speak()
                                            repeatCheckBox->isChecked(),
                                            repeatProbabilitySlider->value());
         hintLabel->setText(QString{"Format: %1"}.arg(providerFactory.formatHint()));
-        pronounce(word);
     }
 }
 
@@ -211,10 +226,7 @@ void MainWindow::answer()
             QMessageBox::information(this, tr("Mistake"), text);
             negative++;
         }
-        {
-            QString text = tr("Positive: %1 Negative: %2").arg(positive).arg(negative);
-            statusLabel->setText(text);
-        }
+        updateStatus();
         labels[providerType]->setText(tr("%1/%2").
                                       arg(rightAnswersCounter[providerType]).
                                       arg(answerCounter[providerType]));
@@ -226,7 +238,8 @@ void MainWindow::answer()
         }while(!providerCheckBoxes[providerType]->isChecked());
     }
 
-    speak();
+    updateQuestion();
+    repeat();
     answerEdit->clear();
     answerEdit->setFocus();
 }
@@ -263,13 +276,20 @@ void MainWindow::checked()
 
     if(!oldOn && on)
     {
-        speak();
+        updateQuestion();
+        repeat();
     }
 
     QSettings settings;
     settings.setValue(onKey, onList);
     settings.setValue(repeatKey, repeatCheckBox->isChecked());
     settings.setValue(probabilityKey, repeatProbabilitySlider->value());
+}
+
+void MainWindow::updateStatus()
+{
+    QString text = statusFormat.arg(positive).arg(negative);
+    statusLabel->setText(text);
 }
 
 void MainWindow::loadImage()

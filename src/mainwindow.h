@@ -41,11 +41,12 @@ private:
     bool on;
 
     void answer();
-    void speak();
+    void updateQuestion();
     void repeat();
     void setRate(int rate);
     void pronounce(QString word);
     void checked();
+    void updateStatus();
 
     ProviderType providerType = NUMBER;
 
