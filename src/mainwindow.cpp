@@ -12,6 +12,9 @@
 #include <QDebug>
 #include <QRegularExpressionValidator>
 #include <QSettings>
+#include <QMenuBar>
+#include <QMenu>
+#include <QAction>
 
 namespace
 {
@@ -84,14 +87,6 @@ MainWindow::MainWindow(ProviderFactory &provider, QWidget *parent)
         playButton = new QPushButton(tr("Play"));
         connect(playButton, &QPushButton::clicked, this, &MainWindow::repeat);
     }
-    QSlider * speechRateSlider;
-    {
-        speechRateSlider = new QSlider{Qt::Horizontal};
-        speechRateSlider->setMinimum(-100);
-        speechRateSlider->setMaximum(100);
-        speechRateSlider->setValue(rate);
-        connect(speechRateSlider, &QSlider::valueChanged, this, &MainWindow::setRate);
-    }
     QSpinBox * spinBox;
     {
         spinBox = new QSpinBox;
@@ -152,12 +147,6 @@ MainWindow::MainWindow(ProviderFactory &provider, QWidget *parent)
             {
                 QHBoxLayout *layout = new QHBoxLayout;
                 controlsLay->addLayout(layout);
-                layout->addWidget(new QLabel{tr("Speech rate")});
-                layout->addWidget(speechRateSlider);
-            }
-            {
-                QHBoxLayout *layout = new QHBoxLayout;
-                controlsLay->addLayout(layout);
                 layout->addWidget(new QLabel{tr("Numbers range")});
                 layout->addWidget(spinBox);
             }
@@ -173,9 +162,23 @@ MainWindow::MainWindow(ProviderFactory &provider, QWidget *parent)
             centralLayout->addWidget(statusLabel, 2, 0, 1, 2);
 //            statusLabel->setAlignment(Qt::AlignCenter);
         }
-    }
+    }    
     {
-        setRate(rate);
+        QMenuBar *bar = new QMenuBar(this);
+        setMenuBar(bar);
+        {
+            QMenu *toolsMenu = bar->addMenu(tr("Tools"));
+            QAction *sayAction = toolsMenu->addAction(tr("Say"));
+
+            connect(sayAction, &QAction::triggered, this, &MainWindow::showSayDialog);
+        }
+        setMenuBar(bar);
+        {
+            QMenu *configMenu = bar->addMenu(tr("Config"));
+            QAction *speechConfigAction = configMenu->addAction(tr("Speech config"));
+
+            connect(speechConfigAction, &QAction::triggered, this, &MainWindow::showSpeechConfigDialog);
+        }
     }
     updateQuestion();
     updateStatus();
@@ -205,7 +208,7 @@ void MainWindow::repeat()
 
 void MainWindow::pronounce(QString word)
 {
-    speaker.say(word);
+    emit say(word);
 }
 
 void MainWindow::answer()
@@ -216,14 +219,14 @@ void MainWindow::answer()
         ++(answerCounter[providerType]);
         if(ok)
         {
-            speaker.say(tr("Right!"));
+            emit say(tr("Right!"));
             positive++;
             ++(rightAnswersCounter[providerType]);
         }else
         {
-            QString text = tr("Auch! It was \n %1").arg(rightAnswer);
-            speaker.say(text);
-            QMessageBox::information(this, tr("Mistake"), text);
+            QString text = tr("Wrong! It was \n %1").arg(rightAnswer);
+            emit say(text);
+            QMessageBox::information(this, tr("Wrong"), text);
             negative++;
         }
         updateStatus();
@@ -242,13 +245,6 @@ void MainWindow::answer()
     repeat();
     answerEdit->clear();
     answerEdit->setFocus();
-}
-
-void MainWindow::setRate(int rate)
-{
-    QSettings settings;
-    settings.setValue(rateKey, rate);
-    speaker.setRate(rate * 0.01);
 }
 
 void MainWindow::setRange(int range)

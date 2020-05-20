@@ -2,7 +2,6 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QTextToSpeech>
 #include <QLineEdit>
 #include <QLabel>
 #include <QCheckBox>
@@ -18,7 +17,6 @@ class MainWindow : public QMainWindow
 
     ProviderFactory &providerFactory;
 public:
-
     explicit MainWindow(ProviderFactory &providerFactory, QWidget *parent = nullptr);
     ~MainWindow();
 
@@ -32,7 +30,6 @@ private:
     QLabel *statusLabel;
     QCheckBox *repeatCheckBox;
     QSlider * repeatProbabilitySlider;
-    QTextToSpeech speaker;
 
     int num;
     int range;
@@ -53,5 +50,10 @@ private:
 public slots:
     void loadImage();
     void setRange(int range);
+
+signals:
+    void say(QString);
+    void showSayDialog();
+    void showSpeechConfigDialog();
 };
 #endif // MAINWINDOW_H

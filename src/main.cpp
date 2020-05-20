@@ -7,6 +7,9 @@
 #include "WordsStorage.h"
 #include "PhrasesStorage.h"
 #include "ProviderFactory.h"
+#include "SpeechConfigDialog.h"
+#include "SayDialog.h"
+#include "Speaker.h"
 
 int main(int argc, char *argv[])
 {
@@ -31,7 +34,17 @@ int main(int argc, char *argv[])
 
     ProviderFactory factory(wStorage, pStorage);
 
+    Speaker speaker;
+
     MainWindow w(factory);
+    SayDialog sayDialog;
+    SpeechConfigDialog speechConfigDialog(speaker);
+
+    QObject::connect(&sayDialog, &SayDialog::say, &speaker, &Speaker::say);
+    QObject::connect(&w, &MainWindow::say, &speaker, &Speaker::say);
+
+    QObject::connect(&w, &MainWindow::showSayDialog, &sayDialog, &QWidget::show);
+    QObject::connect(&w, &MainWindow::showSpeechConfigDialog, &speechConfigDialog, &QWidget::show);
     w.show();
 
     return a.exec();

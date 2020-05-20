@@ -19,6 +19,9 @@ SOURCES += \
     AbstractListeningProvider.cpp \
     PhrasesStorage.cpp \
     ProviderFactory.cpp \
+    SayDialog.cpp \
+    Speaker.cpp \
+    SpeechConfigDialog.cpp \
     WordsStorage.cpp \
     main.cpp \
     mainwindow.cpp
@@ -28,6 +31,9 @@ HEADERS += \
     ExceptionClasses.h \
     PhrasesStorage.h \
     ProviderFactory.h \
+    SayDialog.h \
+    Speaker.h \
+    SpeechConfigDialog.h \
     WordsStorage.h \
     mainwindow.h
 
@@ -41,3 +47,7 @@ DESTDIR= ../bin
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+FORMS += \
+    SayDialog.ui \
+    SpeechConfigDialog.ui
