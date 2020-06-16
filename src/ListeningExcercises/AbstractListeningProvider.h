@@ -2,18 +2,7 @@
 #define ABSTRACTNUMBERPROVIDER_H
 
 #include <QString>
-
-enum ProviderType
-{
-    NUMBER,
-    DATE,
-    TIME,
-    PHONE_NUMBER,
-    WORD,
-    PHRASE,
-
-    PROVIDERS_COUNT
-};
+#include "ProviderType.h"
 
 class AbstractListeningProvider
 {
@@ -22,7 +11,7 @@ public:
     virtual QString get() const = 0;
     virtual QString check(const QString &input, bool &ok) const = 0;
     virtual QString formatHint() const = 0;
-    virtual ~AbstractListeningProvider(){};
+    virtual ~AbstractListeningProvider() = default;
 
     AbstractListeningProvider(ProviderType type) : type(type)
     {};

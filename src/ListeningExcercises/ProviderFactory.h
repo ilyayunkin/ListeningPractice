@@ -10,8 +10,9 @@
 #include "AbstractListeningProvider.h"
 #include "WordsStorage.h"
 #include "PhrasesStorage.h"
+#include "AbstractListeningFactory.h"
 
-class ProviderFactory : public QObject
+class ProviderFactory : public QObject, public AbstractListeningFactory
 {
     Q_OBJECT
     const WordsStorage &wordsStorage;
@@ -33,9 +34,7 @@ public:
     QString repeat();
     QString check(const QString &input, bool &ok);
     QString formatHint();
-
-signals:
-
+    bool inWork();
 };
 
 #endif // PROVIDERFACTORY_H

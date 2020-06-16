@@ -11,20 +11,12 @@
 
 #include <QDebug>
 #include <QRegularExpressionValidator>
-#include <QSettings>
 #include <QMenuBar>
 #include <QMenu>
 #include <QAction>
 
 namespace
 {
-const QString statusFormat = QObject::tr("Positive: %1 Negative: %2");
-const QString rateKey = "rate";
-const QString rangeKey = "range";
-const QString onKey = "on";
-const QString repeatKey = "repeat";
-const QString probabilityKey = "probability";
-
 const std::array<QString, PROVIDERS_COUNT> providerTitles =
 {
     QObject::tr("Number"),
@@ -36,17 +28,10 @@ const std::array<QString, PROVIDERS_COUNT> providerTitles =
 };
 }
 
-MainWindow::MainWindow(ProviderFactory &provider, QWidget *parent)
-    : QMainWindow(parent),
-      providerFactory(provider),
-      num(0),
-      on(false)
-{
-    QSettings settings;
-    int rate = settings.value(rateKey, 0).toInt();
-    range = settings.value(rangeKey, 999).toInt();
-    QString turnedOnProviders = settings.value(onKey, QString()).toString();
 
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+{
     setCentralWidget(new QWidget);
     hintLabel = new QLabel;
     {
@@ -54,18 +39,8 @@ MainWindow::MainWindow(ProviderFactory &provider, QWidget *parent)
         {
             {
                 QCheckBox *cb = new QCheckBox(providerTitles[i]);
-                if(turnedOnProviders.isEmpty() ||
-                        turnedOnProviders.contains(providerTitles[i]))
-                {
-                    cb->setChecked(true);
-                    if(!on)
-                    {
-                        on = true;
-                        providerType = static_cast<ProviderType>(i);
-                    }
-                }
                 providerCheckBoxes[i] = cb;
-                connect(cb, &QCheckBox::toggled, this, &MainWindow::checked);
+                connect(cb, &QCheckBox::clicked, this, &MainWindow::checked);
             }
             labels[i] = new QLabel;
         }
@@ -85,28 +60,23 @@ MainWindow::MainWindow(ProviderFactory &provider, QWidget *parent)
     QPushButton *playButton;
     {
         playButton = new QPushButton(tr("Play"));
-        connect(playButton, &QPushButton::clicked, this, &MainWindow::repeat);
+        connect(playButton, &QPushButton::clicked, [this]{controller->play();});
     }
-    QSpinBox * spinBox;
     {
         spinBox = new QSpinBox;
         spinBox->setMinimum(10);
         spinBox->setMaximum(__INT_MAX__);
-        spinBox->setValue(range);
         connect(spinBox, SIGNAL(valueChanged(int)), this, SLOT(setRange(int)));
     }
     {
         repeatCheckBox = new QCheckBox(tr("Repeat failed"));
-        repeatCheckBox->setChecked(settings.value(repeatKey, true).toBool());
 
-        connect(repeatCheckBox, &QCheckBox::toggled, this, &MainWindow::checked);
+        connect(repeatCheckBox, &QCheckBox::clicked, this, &MainWindow::checked);
     }
     {
         repeatProbabilitySlider = new QSlider{Qt::Horizontal};
         repeatProbabilitySlider->setMinimum(1);
         repeatProbabilitySlider->setMaximum(100);
-        repeatProbabilitySlider->setValue(rate);
-        repeatProbabilitySlider->setValue(settings.value(probabilityKey, 30).toInt());
         connect(repeatProbabilitySlider, &QSlider::valueChanged, this, &MainWindow::checked);
     }
     {
@@ -160,9 +130,9 @@ MainWindow::MainWindow(ProviderFactory &provider, QWidget *parent)
         }
         {
             centralLayout->addWidget(statusLabel, 2, 0, 1, 2);
-//            statusLabel->setAlignment(Qt::AlignCenter);
+            //            statusLabel->setAlignment(Qt::AlignCenter);
         }
-    }    
+    }
     {
         QMenuBar *bar = new QMenuBar(this);
         setMenuBar(bar);
@@ -180,115 +150,95 @@ MainWindow::MainWindow(ProviderFactory &provider, QWidget *parent)
             connect(speechConfigAction, &QAction::triggered, this, &MainWindow::showSpeechConfigDialog);
         }
     }
-    updateQuestion();
-    updateStatus();
 }
 
 MainWindow::~MainWindow()
 {
 }
 
-void MainWindow::updateQuestion()
+void MainWindow::setController(AbstractControllerManipulator *controller)
 {
-    if(on)
-    {
-        QString word = providerFactory.get(providerType,
-                                           range,
-                                           repeatCheckBox->isChecked(),
-                                           repeatProbabilitySlider->value());
-        hintLabel->setText(QString{"Format: %1"}.arg(providerFactory.formatHint()));
-    }
-}
-
-void MainWindow::repeat()
-{
-    pronounce(providerFactory.repeat());
-    answerEdit->setFocus();
-}
-
-void MainWindow::pronounce(QString word)
-{
-    emit say(word);
+    assert(this->controller == nullptr);
+    this->controller = controller;
 }
 
 void MainWindow::answer()
 {
-    bool ok;
-    {
-        QString rightAnswer = providerFactory.check(answerEdit->text(), ok);
-        ++(answerCounter[providerType]);
-        if(ok)
-        {
-            emit say(tr("Right!"));
-            positive++;
-            ++(rightAnswersCounter[providerType]);
-        }else
-        {
-            QString text = tr("Wrong! It was \n %1").arg(rightAnswer);
-            emit say(text);
-            QMessageBox::information(this, tr("Wrong"), text);
-            negative++;
-        }
-        updateStatus();
-        labels[providerType]->setText(tr("%1/%2").
-                                      arg(rightAnswersCounter[providerType]).
-                                      arg(answerCounter[providerType]));
-    }
-    {
-        do
-        {
-            providerType = static_cast<ProviderType>((providerType + 1) % PROVIDERS_COUNT);
-        }while(!providerCheckBoxes[providerType]->isChecked());
-    }
+    assert(controller);
 
-    updateQuestion();
-    repeat();
+    controller->answer(answerEdit->text());
     answerEdit->clear();
     answerEdit->setFocus();
 }
 
 void MainWindow::setRange(int range)
 {
-    QSettings settings;
-    settings.setValue(rangeKey, range);
-    this->range = range;
+    assert(controller);
+
+    controller->setRange(range);
+}
+
+void MainWindow::showAnswerFormat(const QString &text)
+{
+    hintLabel->setText(text);
+}
+
+void MainWindow::showError(const QString &title, const QString &text)
+{
+    QMessageBox::information(this, title, text);
+}
+
+void MainWindow::showGameCounters(const GameCounters &counters)
+{
+    for(size_t i = 0; i < labels.size(); ++i)
+    {
+        labels[i]->setText(tr("%1/%2").
+                           arg(counters.positiveCnt[i]).
+                           arg(counters.answersCnt[i]));
+    }
+    static const QString statusFormat = QObject::tr("Positive: %1 Negative: %2");
+    QString text = statusFormat.arg(counters.positiveCommonCnt).arg(counters.negativeCommonCnt);
+    statusLabel->setText(text);
+}
+
+void MainWindow::showFlags(const ProvidersFlags &flags)
+{
+    for(size_t i = 0; i < labels.size(); ++i)
+    {
+        providerCheckBoxes[i]->setChecked(flags.on[i]);
+    }
+}
+
+void MainWindow::showRange(int val)
+{
+    spinBox->setValue(val);
+}
+
+void MainWindow::showRate(int val)
+{
+    (void)val;
+    //repeatProbabilitySlider->setValue(val);
+}
+
+void MainWindow::showRepeat(const bool on, const int probability)
+{
+    repeatProbabilitySlider->setValue(probability);
+    repeatCheckBox->setChecked(on);
 }
 
 void MainWindow::checked()
 {
-    bool oldOn = on;
-    on = false;
-    QString onList;
-    int i = 0;
-    for(auto cb : providerCheckBoxes)
-    {
-        on |= cb->isChecked();
-        if(cb->isChecked())
-        {
-            onList+=providerTitles[i] + ',';
-        }
-        ++i;
-    }
+    qDebug() << __PRETTY_FUNCTION__ ;
+    assert(controller);
 
-    if(!oldOn && on)
-    {
-        updateQuestion();
-        repeat();
+    ProvidersFlags flags;
+    for(int i = 0; i < PROVIDERS_COUNT; ++i){
+        flags.on[i] = providerCheckBoxes[i]->isChecked();
     }
-
-    QSettings settings;
-    settings.setValue(onKey, onList);
-    settings.setValue(repeatKey, repeatCheckBox->isChecked());
-    settings.setValue(probabilityKey, repeatProbabilitySlider->value());
+    controller->config(flags);
 }
 
-void MainWindow::updateStatus()
+void MainWindow::setRate(int rate)
 {
-    QString text = statusFormat.arg(positive).arg(negative);
-    statusLabel->setText(text);
-}
-
-void MainWindow::loadImage()
-{
-    qDebug() << __FUNCTION__;
+    spinBox->setValue(rate);
 }

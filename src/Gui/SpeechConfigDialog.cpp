@@ -1,7 +1,7 @@
 #include "SpeechConfigDialog.h"
 #include "ui_SpeechConfigDialog.h"
 
-SpeechConfigDialog::SpeechConfigDialog(Speaker &speaker, QWidget *parent) :
+SpeechConfigDialog::SpeechConfigDialog(AbstractSpeaker *speaker, QWidget *parent) :
     QDialog(parent),
     speaker(speaker),
     ui(new Ui::SpeechConfigDialog)
@@ -9,14 +9,14 @@ SpeechConfigDialog::SpeechConfigDialog(Speaker &speaker, QWidget *parent) :
     ui->setupUi(this);
 
     ui->engine->addItem("Default", QString("default"));
-    const auto engines = Speaker::availableEngines();
-    for (const QString &engine : engines)
+    const auto engines = speaker->availableEngines();
+    for (const auto &engine : engines)
         ui->engine->addItem(engine, engine);
     ui->engine->setCurrentIndex(0);
     engineSelected(0);
 
     connect(ui->sayButton, &QPushButton::clicked,
-            [this](){ this->speaker.say(ui->plainTextEdit->toPlainText());});
+            [this](){ this->speaker->say(ui->plainTextEdit->toPlainText());});
     connect(ui->pitch, &QSlider::valueChanged, this, &SpeechConfigDialog::selectPitch);
     connect(ui->rate, &QSlider::valueChanged, this, &SpeechConfigDialog::selectRate);
     connect(ui->volume, &QSlider::valueChanged, this, &SpeechConfigDialog::selectVolume);
@@ -30,36 +30,30 @@ SpeechConfigDialog::~SpeechConfigDialog()
 
 void SpeechConfigDialog::selectRate(int rate)
 {
-    speaker.setRate(rate / 10.0);
+    speaker->setRate(rate / 10.0);
 }
 
 void SpeechConfigDialog::selectPitch(int pitch)
 {
-    speaker.setPitch(pitch / 10.0);
+    speaker->setPitch(pitch / 10.0);
 }
 
 void SpeechConfigDialog::selectVolume(int volume)
 {
-    speaker.setVolume(volume / 100.0);
+    speaker->setVolume(volume / 100.0);
 }
 
 void SpeechConfigDialog::engineSelected(int index)
 {
     QString engineName = ui->engine->itemData(index).toString();
-    speaker.setEngine(engineName);
+    speaker->setEngine(engineName);
     disconnect(ui->language, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged), this, &SpeechConfigDialog::languageSelected);
     ui->language->clear();
     // Populate the languages combobox before connecting its signal.
-    const QVector<QLocale> locales = speaker.availableLocales();
-    QLocale current = speaker.locale();
-    for (const QLocale &locale : locales) {
-        QString name(QString("%1 (%2)")
-                     .arg(QLocale::languageToString(locale.language()))
-                     .arg(QLocale::countryToString(locale.country())));
-        QVariant localeVariant(locale);
-        ui->language->addItem(name, localeVariant);
-        if (locale.name() == current.name())
-            current = locale;
+    const auto locales = speaker->availableLanguages();
+    auto current = speaker->currentLanguage();
+    for (const auto &locale : locales) {
+        ui->language->addItem(locale, locale);
     }
     selectRate(ui->rate->value());
     selectPitch(ui->pitch->value());
@@ -71,13 +65,13 @@ void SpeechConfigDialog::engineSelected(int index)
 
 void SpeechConfigDialog::languageSelected(int language)
 {
-    QLocale locale = ui->language->itemData(language).toLocale();
-    speaker.setLocale(locale);
+    auto locale = ui->language->itemData(language).toString();
+    speaker->setLanguage(locale);
 }
 
 void SpeechConfigDialog::voiceSelected(int index)
 {
-    speaker.setVoice(m_voices.at(index));
+    speaker->setVoice(ui->voice->itemText(index));
 }
 
 void SpeechConfigDialog::localeChanged(const QLocale &locale)
@@ -88,13 +82,11 @@ void SpeechConfigDialog::localeChanged(const QLocale &locale)
     disconnect(ui->voice, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged), this, &SpeechConfigDialog::voiceSelected);
     ui->voice->clear();
 
-    m_voices = speaker.availableVoices();
-    QVoice currentVoice = speaker.voice();
-    for (const QVoice &voice : qAsConst(m_voices)) {
-        ui->voice->addItem(QString("%1 - %2 - %3").arg(voice.name())
-                          .arg(QVoice::genderName(voice.gender()))
-                          .arg(QVoice::ageName(voice.age())));
-        if (voice.name() == currentVoice.name())
+    auto m_voices = speaker->availableVoices();
+    auto currentVoice = speaker->currentVoice();
+    for (const auto &voice : qAsConst(m_voices)) {
+        ui->voice->addItem(voice);
+        if (voice == currentVoice)
             ui->voice->setCurrentIndex(ui->voice->count() - 1);
     }
     connect(ui->voice, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged), this, &SpeechConfigDialog::voiceSelected);

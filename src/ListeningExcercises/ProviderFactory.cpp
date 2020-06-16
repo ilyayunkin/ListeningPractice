@@ -370,3 +370,8 @@ QString ProviderFactory::formatHint()
     QString ret = numberProvider->formatHint();
     return ret;
 }
+
+bool ProviderFactory::inWork()
+{
+    return !numberProvider.isNull();
+}

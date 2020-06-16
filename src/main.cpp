@@ -4,12 +4,14 @@
 #include <QSslSocket>
 #include <QDebug>
 
-#include "WordsStorage.h"
-#include "PhrasesStorage.h"
-#include "ProviderFactory.h"
+#include "ListeningExcercises/WordsStorage.h"
+#include "ListeningExcercises/PhrasesStorage.h"
+#include "ListeningExcercises/ProviderFactory.h"
 #include "SpeechConfigDialog.h"
 #include "SayDialog.h"
-#include "Speaker.h"
+#include "Speech/Speaker.h"
+#include "Settings/Settings.h"
+#include "Core/src/Controller.h"
 
 int main(int argc, char *argv[])
 {
@@ -28,23 +30,32 @@ int main(int argc, char *argv[])
     qDebug() << "Supports SSL: " << ssl
              << QSslSocket::sslLibraryBuildVersionString()
              << QSslSocket::sslLibraryVersionString();
-
+//
     WordsStorage wStorage;
     PhrasesStorage pStorage;
 
     ProviderFactory factory(wStorage, pStorage);
-
+//
     Speaker speaker;
-
-    MainWindow w(factory);
+    Settings settings;
+//
+    MainWindow w;
     SayDialog sayDialog;
-    SpeechConfigDialog speechConfigDialog(speaker);
+    SpeechConfigDialog speechConfigDialog(&speaker);
 
     QObject::connect(&sayDialog, &SayDialog::say, &speaker, &Speaker::say);
-    QObject::connect(&w, &MainWindow::say, &speaker, &Speaker::say);
-
     QObject::connect(&w, &MainWindow::showSayDialog, &sayDialog, &QWidget::show);
     QObject::connect(&w, &MainWindow::showSpeechConfigDialog, &speechConfigDialog, &QWidget::show);
+//
+    Controller controller;
+//
+    controller.setSpeaker(&speaker);
+    controller.setSettings(&settings);
+    controller.setProviderFactory(&factory);
+    controller.setView(&w);
+    w.setController(&controller);
+//
+    controller.init();
     w.show();
 
     return a.exec();

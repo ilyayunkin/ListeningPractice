@@ -4,7 +4,8 @@
 #include <QDialog>
 #include <QVector>
 
-#include <Speaker.h>
+#include "AbstractSpeaker.h"
+
 namespace Ui {
 class SpeechConfigDialog;
 }
@@ -12,7 +13,7 @@ class SpeechConfigDialog;
 class SpeechConfigDialog : public QDialog
 {
     Q_OBJECT
-    Speaker &speaker;
+    AbstractSpeaker *speaker;
     void selectRate(int rate);
     void selectPitch(int pitch);
     void selectVolume(int volume);
@@ -24,12 +25,11 @@ class SpeechConfigDialog : public QDialog
     void localeChanged(const QLocale &locale);
 
 public:
-    explicit SpeechConfigDialog(Speaker &speaker, QWidget *parent = nullptr);
+    explicit SpeechConfigDialog(AbstractSpeaker *speaker, QWidget *parent = nullptr);
     ~SpeechConfigDialog();
 
 private:
     Ui::SpeechConfigDialog *ui;
-    QVector<QVoice> m_voices;
 };
 
 #endif // SPEECHCONFIGDIALOG_H

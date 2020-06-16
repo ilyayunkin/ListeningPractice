@@ -16,29 +16,43 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-    AbstractListeningProvider.cpp \
-    PhrasesStorage.cpp \
-    ProviderFactory.cpp \
-    SayDialog.cpp \
-    Speaker.cpp \
-    SpeechConfigDialog.cpp \
-    WordsStorage.cpp \
+    Core/src/Controller.cpp \
+    Settings/Settings.cpp \
     main.cpp \
-    mainwindow.cpp
+    ListeningExcercises/WordsStorage.cpp \
+    ListeningExcercises/PhrasesStorage.cpp \
+    ListeningExcercises/ProviderFactory.cpp \
+    Speech/Speaker.cpp \
+    Gui/SayDialog.cpp \
+    Gui/SpeechConfigDialog.cpp \
+    Gui/mainwindow.cpp
 
 HEADERS += \
-    AbstractListeningProvider.h \
-    ExceptionClasses.h \
-    PhrasesStorage.h \
-    ProviderFactory.h \
-    SayDialog.h \
-    Speaker.h \
-    SpeechConfigDialog.h \
-    WordsStorage.h \
-    mainwindow.h
+    Core/Include/AbstractListeningFactory.h \
+    Core/Include/AbstractSettings.h \
+    Core/Include/AbstractSpeaker.h \
+    Core/Include/AbstractView.h \
+    Core/Include/ExceptionClasses.h \
+    Core/Include/GameCounters.h \
+    Core/Include/ProviderType.h \
+    Core/Include/ProvidersFlags.h \
+    Core/Include/AbstractControllerManipulator.h \
+    Core/src/Controller.h \
+    ListeningExcercises/Include/AbstractListeningProvider.h \
+    ListeningExcercises/WordsStorage.h \
+    ListeningExcercises/PhrasesStorage.h \
+    ListeningExcercises/ProviderFactory.h \
+    Settings/Settings.h \
+    Speech/Speaker.h \
+    Gui/SayDialog.h \
+    Gui/SpeechConfigDialog.h \
+    Gui/mainwindow.h
 
 TRANSLATIONS += \
     NumbersListeningPractice_ru_RU.ts
+
+INCLUDEPATH+= Core\Include\
+INCLUDEPATH+= Gui
 
 QMAKE_CXXFLAGS+= -Wall -Werror
 DESTDIR= ../bin
@@ -49,5 +63,5 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 FORMS += \
-    SayDialog.ui \
-    SpeechConfigDialog.ui
+    Gui/SayDialog.ui \
+    Gui/SpeechConfigDialog.ui
